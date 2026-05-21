@@ -123,10 +123,6 @@ export default function App() {
           months={months}
           updateMonthField={updateMonthField}
           resetMonth={resetMonth}
-          onResetAll={() => {
-            resetAll();
-            showToast('All months reset to defaults', 'info');
-          }}
         />
 
         <Snackbar
