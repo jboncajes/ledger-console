@@ -25,7 +25,6 @@ interface DataDrawerProps {
   months: MonthRecord[];
   updateMonthField: (monthId: string, field: keyof PnlInputs, value: number) => void;
   resetMonth: (monthId: string) => void;
-  onResetAll: () => void;
 }
 
 function NumericInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -190,7 +189,7 @@ function SectionTitle({ children, variant }: { children: React.ReactNode; varian
   );
 }
 
-export function DataDrawer({ open, onClose, months, updateMonthField, resetMonth, onResetAll }: DataDrawerProps) {
+export function DataDrawer({ open, onClose, months, updateMonthField, resetMonth }: DataDrawerProps) {
   const colors = useColors();
   const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));
   const lastId = sorted[sorted.length - 1]?.id ?? '';

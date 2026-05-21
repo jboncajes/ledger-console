@@ -3,12 +3,9 @@ import {
   Avatar,
   Box,
   IconButton,
-  Menu,
-  MenuItem,
   Stack,
   Tooltip,
   Typography,
-  alpha,
 } from '@mui/material';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
@@ -22,7 +19,6 @@ interface TopbarProps {
 
 export function Topbar({ darkMode, onToggleDark }: TopbarProps) {
   const colors = useColors();
-  const [anchor, setAnchor] = useState<null | HTMLElement>(null);
 
   const iconBtnSx = {
     width: 36,
@@ -75,7 +71,6 @@ export function Topbar({ darkMode, onToggleDark }: TopbarProps) {
           direction="row"
           alignItems="center"
           gap={1.25}
-          onClick={(e) => setAnchor(e.currentTarget)}
           sx={{
             px: 1.25,
             pl: 0.5,
@@ -106,12 +101,6 @@ export function Topbar({ darkMode, onToggleDark }: TopbarProps) {
             </Typography>
           </Box>
         </Stack>
-
-        {/* <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
-          <MenuItem onClick={() => setAnchor(null)}>Profile</MenuItem>
-          <MenuItem onClick={() => setAnchor(null)}>Preferences</MenuItem>
-          <MenuItem onClick={() => setAnchor(null)}>Sign out</MenuItem>
-        </Menu> */}
       </Stack>
     </Stack>
   );
