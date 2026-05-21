@@ -52,8 +52,8 @@ function BarRow({ label, value, maxValue, tone, description, onHover }: BarRowPr
         alignItems="center"
         justifyContent="space-between"
         sx={{
-          py: 1.1,
-          fontSize: 12.5,
+          py: 1.5,
+          fontSize: 13,
           borderBottom: `1px dashed ${colors.border}`,
           cursor: 'pointer',
           transition: 'background 0.2s',
@@ -64,7 +64,7 @@ function BarRow({ label, value, maxValue, tone, description, onHover }: BarRowPr
         onMouseLeave={() => onHover(null)}
       >
         <Box sx={{ flex: '0 0 130px', color: 'text.secondary' }}>{label}</Box>
-        <Box sx={{ flex: 1, height: 6, background: alpha(colors.ink, 0.06), borderRadius: 99, mx: 1.5, overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, height: 10, background: alpha(colors.ink, 0.06), borderRadius: 99, mx: 1.5, overflow: 'hidden' }}>
           <Box sx={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${alpha(color, 0.3)})`, borderRadius: 99, transition: 'width 0.6s ease' }} />
         </Box>
         <Box sx={{ flex: '0 0 90px', textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>
@@ -84,14 +84,22 @@ export function MarginComposition({ data }: MarginCompositionProps) {
   const ratioDelta = ratio - ratioPrior;
   const arrowUp = ratioDelta >= 0;
 
-  const radius = 68;
+  const radius = 86;
   const circumference = 2 * Math.PI * radius;
   const arcLen = (Math.max(0, Math.min(100, ratio)) / 100) * circumference;
 
   const c = data.inputs.current;
+  const p = data.inputs.prior;
   const maxBar = Math.max(data.current.opMargin, c.deprec, c.interest, c.nonOpRev, c.rfsc, 1);
 
-  const donutDescription = `Total margin as a percentage of total revenue — how much of each peso earned is retained after all deductions. ${ratioDelta !== 0 ? `${arrowUp ? 'Up' : 'Down'} ${Math.abs(ratioDelta).toFixed(1)} pp vs prior period.` : ''}`;
+  function chg(curr: number, prev: number) {
+    const diff = curr - prev;
+    const pct = Math.abs(prev) > 0 ? (Math.abs(diff) / Math.abs(prev)) * 100 : 0;
+    return `${diff >= 0 ? 'up' : 'down'} ${PESO}${fmtMillions(Math.abs(diff))}M (${pct.toFixed(1)}%) vs prior`;
+  }
+
+  const opMarginRatio = data.current.totalRev > 0 ? (data.current.opMargin / data.current.totalRev) * 100 : 0;
+  const donutDescription = `${ratio.toFixed(1)}% margin ratio this period — ${ratioDelta !== 0 ? `${arrowUp ? 'up' : 'down'} ${Math.abs(ratioDelta).toFixed(1)} pp vs prior.` : 'unchanged vs prior.'} Measures how much of each peso earned is retained after all deductions.`;
 
   return (
     <Box sx={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '18px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', p: 3, boxShadow: `0 20px 60px -20px ${alpha(colors.ink, 0.15)}` }}>
@@ -113,24 +121,24 @@ export function MarginComposition({ data }: MarginCompositionProps) {
         slotProps={tooltipSx(colors)}
       >
         <Stack alignItems="center" justifyContent="center" sx={{ py: 2, cursor: 'default' }}>
-          <svg width="180" height="180" viewBox="0 0 180 180">
+          <svg width="220" height="220" viewBox="0 0 220 220">
             <defs>
               <linearGradient id="g-arc1" x1="0" x2="1" y1="0" y2="1">
                 <stop offset="0%" stopColor={colors.accent} />
                 <stop offset="100%" stopColor={colors.accent2} />
               </linearGradient>
             </defs>
-            <circle cx="90" cy="90" r={radius} fill="none" stroke={alpha(colors.ink, 0.08)} strokeWidth="14" />
-            <circle cx="90" cy="90" r={radius} fill="none" stroke="url(#g-arc1)" strokeWidth="14"
+            <circle cx="110" cy="110" r={radius} fill="none" stroke={alpha(colors.ink, 0.08)} strokeWidth="16" />
+            <circle cx="110" cy="110" r={radius} fill="none" stroke="url(#g-arc1)" strokeWidth="16"
               strokeDasharray={`${arcLen} ${circumference}`} strokeLinecap="round"
-              transform="rotate(-90 90 90)" style={{ transition: 'stroke-dasharray 0.6s ease' }} />
-            <text x="90" y="84" textAnchor="middle" fontFamily="Inter" fontSize="10" fill={colors.inkDim} letterSpacing="1.4">
+              transform="rotate(-90 110 110)" style={{ transition: 'stroke-dasharray 0.6s ease' }} />
+            <text x="110" y="102" textAnchor="middle" fontFamily="Inter" fontSize="10" fill={colors.inkDim} letterSpacing="1.4">
               MARGIN RATIO
             </text>
-            <text x="90" y="118" textAnchor="middle" fontFamily="Instrument Serif" fontSize="36" fill={colors.ink}>
+            <text x="110" y="140" textAnchor="middle" fontFamily="Instrument Serif" fontSize="44" fill={colors.ink}>
               {ratio.toFixed(1)}%
             </text>
-            <text x="90" y="128" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="10"
+            <text x="110" y="154" textAnchor="middle" fontFamily="JetBrains Mono" fontSize="11"
               fill={arrowUp ? colors.accent2 : colors.danger}>
               {arrowUp ? '▲ ' : '▼ '}{Math.abs(ratioDelta).toFixed(1)} pp
             </text>
@@ -139,19 +147,19 @@ export function MarginComposition({ data }: MarginCompositionProps) {
       </Tooltip>
 
       <BarRow label="Operating Margin" value={data.current.opMargin} maxValue={maxBar} tone="success"
-        description="Revenue minus power and O&M costs — core operational efficiency before non-cash charges and financing costs."
+        description={`${PESO}${fmtMillions(data.current.opMargin)}M (${opMarginRatio.toFixed(1)}% of revenue) — ${chg(data.current.opMargin, data.prior.opMargin)}. Revenue after power and O&M, before non-cash charges and financing.`}
         onHover={setHover} />
       <BarRow label="Less: Deprec." value={c.deprec} maxValue={maxBar} tone="danger"
-        description="Non-cash charge for fixed asset depreciation. Reduces reported margin but does not affect cash flow."
+        description={`${PESO}${fmtMillions(c.deprec)}M non-cash depreciation — ${chg(c.deprec, p.deprec)}. No cash impact; reduces reported margin only.`}
         onHover={setHover} />
       <BarRow label="Less: Interest" value={c.interest} maxValue={maxBar} tone="danger"
-        description="Financing cost on outstanding debt. Declining interest signals progress in debt paydown and widens net operating margin."
+        description={`${PESO}${fmtMillions(c.interest)}M financing cost — ${chg(c.interest, p.interest)}. ${c.interest < p.interest ? 'Declining interest signals debt paydown progress.' : 'Increased vs prior — check outstanding debt levels.'}`}
         onHover={setHover} />
       <BarRow label="+ Non-Op Rev" value={c.nonOpRev} maxValue={maxBar} tone="success"
-        description="Miscellaneous income from non-core activities (interest earned, rental, etc.) added to reach net margin."
+        description={`${PESO}${fmtMillions(c.nonOpRev)}M — ${chg(c.nonOpRev, p.nonOpRev)}. Miscellaneous income from non-core activities such as rental and interest earned.`}
         onHover={setHover} />
       <BarRow label="+ RFSC" value={c.rfsc} maxValue={maxBar} tone="warning"
-        description="Reinvestment Fund for Stranded Contracts — regulatory obligation per ERC rules added to net margin to arrive at total margin."
+        description={`${PESO}${fmtMillions(c.rfsc)}M — ${chg(c.rfsc, p.rfsc)}. Regulatory RFSC contribution added to net margin to arrive at total margin.`}
         onHover={setHover} />
     </Box>
   );

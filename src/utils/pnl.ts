@@ -28,17 +28,6 @@ export function sumInputs(list: PnlInputs[]): PnlInputs {
 
 const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function sliceLabel(months: MonthRecord[]): string {
-  if (months.length === 0) return '';
-  if (months.length === 1) return months[0].label;
-  const first = months[0];
-  const last = months[months.length - 1];
-  if (first.year === last.year) {
-    return `${SHORT[first.month - 1]}–${SHORT[last.month - 1]} ${last.year}`;
-  }
-  return `${SHORT[first.month - 1]} ${first.year} – ${SHORT[last.month - 1]} ${last.year}`;
-}
-
 const EMPTY_INPUTS: PnlInputs = {
   opRev: 0, othRev: 0, power: 0, om: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0,
 };
@@ -58,13 +47,22 @@ export function getPeriodSlices(months: MonthRecord[], period: PeriodView): PnlP
   }
 
   if (period === 'QoQ') {
-    const currSlice = sorted.slice(Math.max(0, n - 3));
-    const priorSlice = sorted.slice(Math.max(0, n - 6), Math.max(0, n - 3));
+    const latest = sorted[n - 1];
+    const cq = Math.ceil(latest.month / 3); // 1–4
+    const cy = latest.year;
+
+    let pq = cq - 1;
+    let py = cy;
+    if (pq === 0) { pq = 4; py = cy - 1; }
+
+    const currSlice = sorted.filter((m) => m.year === cy && Math.ceil(m.month / 3) === cq);
+    const priorSlice = sorted.filter((m) => m.year === py && Math.ceil(m.month / 3) === pq);
+
     return {
       current: sumInputs(currSlice.map((m) => m.inputs)),
       prior: sumInputs(priorSlice.map((m) => m.inputs)),
-      currentLabel: sliceLabel(currSlice),
-      priorLabel: sliceLabel(priorSlice),
+      currentLabel: `Q${cq} ${cy}`,
+      priorLabel: `Q${pq} ${py}`,
     };
   }
 
@@ -143,6 +141,6 @@ export const MONTHS_SEED: MonthRecord[] = [
   },
   {
     id: '2026-04', label: 'April 2026', year: 2026, month: 4,
-    inputs: { opRev: 242_700_000, othRev: 2_600_000, power: 179_800_000, om: 36_000_000, deprec: 7_200_000, interest: 2_600_000, nonOpRev: 1_900_000, nonOpExp: 0, rfsc: 7_100_000 },
+    inputs: { opRev: 0, othRev: 0, power: 0, om: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0 },
   },
 ];

@@ -1,19 +1,37 @@
+import { useRef } from 'react';
 import {
   Box,
   Button,
   ButtonGroup,
   Chip,
   Stack,
+  Tooltip,
   Typography,
   alpha,
   keyframes,
 } from '@mui/material';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
+import FileUploadRoundedIcon from '@mui/icons-material/FileUploadRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import type { PeriodView } from '../types/pnl';
 import { useColors } from '../theme/theme';
 
 const PERIODS: PeriodView[] = ['MoM', 'QoQ', 'YTD'];
+
+const PERIOD_META: Record<PeriodView, { title: string; body: string }> = {
+  MoM: {
+    title: 'Month-over-Month',
+    body: 'Compares the most recent month against the one immediately before it. Best for spotting short-term changes in revenue and cost.',
+  },
+  QoQ: {
+    title: 'Quarter-over-Quarter',
+    body: 'Sums the last 3 months and compares against the 3 months before that. Smooths single-month spikes and gives a cleaner trend view.',
+  },
+  YTD: {
+    title: 'Year-to-Date',
+    body: 'Accumulates January through the current month and compares against the same range in the prior year. Useful for full-year trajectory.',
+  },
+};
 
 interface PageHeadProps {
   currentLabel: string;
@@ -22,6 +40,8 @@ interface PageHeadProps {
   onPeriodChange: (p: PeriodView) => void;
   onOpenDrawer: () => void;
   onExport: () => void;
+  onImport: (file: File) => void;
+  onDownloadTemplate: () => void;
 }
 
 const pulse = keyframes`
@@ -36,8 +56,17 @@ export function PageHead({
   onPeriodChange,
   onOpenDrawer,
   onExport,
+  onImport,
+  onDownloadTemplate,
 }: PageHeadProps) {
   const colors = useColors();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onImport(file);
+    e.target.value = '';
+  };
 
   const controlBtnSx = {
     py: 1,
@@ -72,7 +101,7 @@ export function PageHead({
       <Box>
         <Stack direction="row" alignItems="center" gap={1.5} flexWrap="wrap">
           <Typography component="h1" variant="h1" sx={{ fontSize: '2.4rem', lineHeight: 1.1 }}>
-            {greeting}, Aya!
+            {greeting}, Zaii!
           </Typography>
           <Chip
             label="LIVE"
@@ -113,6 +142,14 @@ export function PageHead({
         </Typography>
       </Box>
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+
       <Stack direction="row" gap={1} flexWrap="wrap">
         <ButtonGroup
           sx={{
@@ -135,28 +172,71 @@ export function PageHead({
           }}
         >
           {PERIODS.map((p) => (
-            <Button
+            <Tooltip
               key={p}
-              onClick={() => onPeriodChange(p)}
-              sx={{
-                ...(activePeriod === p && {
-                  background: `${alpha(colors.ink, 0.06)} !important`,
-                  color: 'text.primary !important',
-                  fontWeight: '600 !important',
-                }),
+              placement="bottom"
+              arrow
+              enterDelay={350}
+              title={
+                <Box sx={{ p: 0.25 }}>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, mb: 0.5 }}>{PERIOD_META[p].title}</Typography>
+                  <Typography sx={{ fontSize: 11.5, lineHeight: 1.6, opacity: 0.85 }}>{PERIOD_META[p].body}</Typography>
+                </Box>
+              }
+              slotProps={{
+                tooltip: { sx: { background: alpha(colors.ink, 0.93), backdropFilter: 'blur(16px)', border: `1px solid ${alpha(colors.ink, 0.2)}`, borderRadius: '10px', p: 1.5, maxWidth: 240 } },
+                arrow: { sx: { color: alpha(colors.ink, 0.93) } },
               }}
             >
-              {p}
-            </Button>
+              <Button
+                onClick={() => onPeriodChange(p)}
+                sx={{
+                  ...(activePeriod === p && {
+                    background: `${alpha(colors.ink, 0.06)} !important`,
+                    color: 'text.primary !important',
+                    fontWeight: '600 !important',
+                  }),
+                }}
+              >
+                {p}
+              </Button>
+            </Tooltip>
           ))}
         </ButtonGroup>
+
+        <Tooltip
+          title="Download a blank Excel template pre-filled with all month columns and zero amounts."
+          placement="bottom"
+          arrow
+          enterDelay={350}
+          slotProps={{
+            tooltip: { sx: { background: alpha(colors.ink, 0.93), backdropFilter: 'blur(16px)', border: `1px solid ${alpha(colors.ink, 0.2)}`, borderRadius: '10px', p: 1.5, maxWidth: 220, fontSize: 12 } },
+            arrow: { sx: { color: alpha(colors.ink, 0.93) } },
+          }}
+        >
+          <Button
+            startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 15 }} />}
+            sx={controlBtnSx}
+            onClick={onDownloadTemplate}
+          >
+            Download Format
+          </Button>
+        </Tooltip>
+
+        <Button
+          startIcon={<FileUploadRoundedIcon sx={{ fontSize: 15 }} />}
+          sx={controlBtnSx}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Import Excel
+        </Button>
 
         <Button
           startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 15 }} />}
           sx={controlBtnSx}
           onClick={onExport}
         >
-          Export CSV
+          Export Excel
         </Button>
 
         <Button

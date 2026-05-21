@@ -16,24 +16,50 @@ interface Step {
   description: string;
 }
 
+function d(curr: number, prev: number): string {
+  const diff = curr - prev;
+  const pct = Math.abs(prev) > 0 ? (Math.abs(diff) / Math.abs(prev)) * 100 : 0;
+  return `${diff >= 0 ? 'up' : 'down'} ${PESO}${fmtMillions(Math.abs(diff))}M (${pct.toFixed(1)}%) vs prior`;
+}
+
 function buildSteps(data: PnlComputed): Step[] {
   const c = data.inputs.current;
+  const p = data.inputs.prior;
   const totalRev = c.opRev + c.othRev;
+  const priorTotalRev = p.opRev + p.othRev;
   const opMargin = totalRev - c.power - c.om;
+  const priorOpMargin = priorTotalRev - p.power - p.om;
   const netOpMargin = opMargin - c.deprec - c.interest;
-  const netMargin = netOpMargin + c.nonOpRev - c.nonOpExp;
+  const priorNetOpMargin = priorOpMargin - p.deprec - p.interest;
+  const nonOp = c.nonOpRev - c.nonOpExp;
+  const priorNonOp = p.nonOpRev - p.nonOpExp;
+  const netMargin = netOpMargin + nonOp;
+  const priorNetMargin = priorNetOpMargin + priorNonOp;
   const totalMargin = netMargin + c.rfsc;
+  const priorTotalMargin = priorNetMargin + p.rfsc;
+
+  const powRatio = totalRev > 0 ? (c.power / totalRev) * 100 : 0;
+  const opRatio = totalRev > 0 ? (opMargin / totalRev) * 100 : 0;
 
   return [
-    { label: 'Total Revenue', value: totalRev, kind: 'subtotal', runningTo: totalRev, description: 'Opening figure — all revenue streams combined (operating tariffs + other income). This is the basis for every deduction that follows.' },
-    { label: 'Power', value: -c.power, kind: 'outflow', runningTo: totalRev - c.power, description: 'Largest cost driver. Electricity purchased from the grid for distribution, typically 70–75% of revenue. Closely tracks consumption volume and spot market prices.' },
-    { label: 'O&M', value: -c.om, kind: 'outflow', runningTo: opMargin, description: 'Operating and maintenance expense — labor, contracted services, materials, and infrastructure upkeep. Relatively stable but watch for cost creep.' },
-    { label: 'Op. Margin', value: opMargin, kind: 'subtotal', runningTo: opMargin, description: 'Revenue minus all direct operating costs. A positive and growing operating margin signals healthy core efficiency before financing and non-cash charges.' },
-    { label: 'Deprec.', value: -c.deprec, kind: 'outflow', runningTo: opMargin - c.deprec, description: 'Non-cash charge for the wear and aging of fixed assets. Reduces reported margin but has no impact on cash flow. Based on the fixed asset register.' },
-    { label: 'Interest', value: -c.interest, kind: 'outflow', runningTo: netOpMargin, description: 'Financing costs on outstanding borrowings. Declining with debt paydown is a positive sign; a key lever for improving net operating margin.' },
-    { label: '+ Non-Op', value: c.nonOpRev - c.nonOpExp, kind: 'inflow', runningTo: netMargin, description: 'Net non-operating items — miscellaneous income (e.g., rental, interest income) less non-operating expenses. Smaller and less predictable than core revenue.' },
-    { label: '+ RFSC', value: c.rfsc, kind: 'inflow', runningTo: totalMargin, description: 'Reinvestment Fund for Stranded Contracts (RFSC) — a regulatory obligation added back to margins. Represents recovery of stranded contract costs per ERC rules.' },
-    { label: 'Total Margin', value: totalMargin, kind: 'subtotal', runningTo: totalMargin, description: 'Final bottom line — total margin gross of RFSC. This is the primary performance measure for the period, combining all operating and non-operating flows.' },
+    { label: 'Total Revenue', value: totalRev, kind: 'subtotal', runningTo: totalRev,
+      description: `${PESO}${fmtMillions(totalRev)}M this period — ${d(totalRev, priorTotalRev)}. Opening figure from energy tariffs and other income.` },
+    { label: 'Power', value: -c.power, kind: 'outflow', runningTo: totalRev - c.power,
+      description: `${PESO}${fmtMillions(c.power)}M (${powRatio.toFixed(1)}% of revenue) — ${d(c.power, p.power)}. ${c.power > p.power ? 'Rising power costs are compressing the operating margin.' : 'Easing power costs are supporting margin expansion.'}` },
+    { label: 'O&M', value: -c.om, kind: 'outflow', runningTo: opMargin,
+      description: `${PESO}${fmtMillions(c.om)}M — ${d(c.om, p.om)}. ${c.om > p.om ? 'Costs rose vs prior — review labor and contracted services.' : 'Costs held below prior period.'}` },
+    { label: 'Op. Margin', value: opMargin, kind: 'subtotal', runningTo: opMargin,
+      description: `${PESO}${fmtMillions(opMargin)}M (${opRatio.toFixed(1)}% of revenue) — ${d(opMargin, priorOpMargin)}. Core efficiency before non-cash charges and financing.` },
+    { label: 'Deprec.', value: -c.deprec, kind: 'outflow', runningTo: opMargin - c.deprec,
+      description: `${PESO}${fmtMillions(c.deprec)}M non-cash depreciation — ${d(c.deprec, p.deprec)}. No cash impact; reduces reported margin only.` },
+    { label: 'Interest', value: -c.interest, kind: 'outflow', runningTo: netOpMargin,
+      description: `${PESO}${fmtMillions(c.interest)}M financing cost — ${d(c.interest, p.interest)}. ${c.interest < p.interest ? 'Declining interest signals progress in debt paydown.' : 'Increased interest expense — check debt levels.'}` },
+    { label: '+ Non-Op', value: nonOp, kind: 'inflow', runningTo: netMargin,
+      description: `Net ${PESO}${fmtMillions(nonOp)}M — ${d(nonOp, priorNonOp)}. Miscellaneous income (rental, interest earned) net of non-operating expenses.` },
+    { label: '+ RFSC', value: c.rfsc, kind: 'inflow', runningTo: totalMargin,
+      description: `${PESO}${fmtMillions(c.rfsc)}M — ${d(c.rfsc, p.rfsc)}. Regulatory RFSC contribution added back to arrive at total margin.` },
+    { label: 'Total Margin', value: totalMargin, kind: 'subtotal', runningTo: totalMargin,
+      description: `${PESO}${fmtMillions(totalMargin)}M final margin — ${d(totalMargin, priorTotalMargin)}. Bottom line combining all operating and non-operating flows.` },
   ];
 }
 
@@ -42,11 +68,11 @@ export function Waterfall({ data }: WaterfallProps) {
   const steps = buildSteps(data);
   const [hover, setHover] = useState<number | null>(null);
 
-  const w = 800, h = 280, padX = 40, padY = 30;
+  const w = 800, h = 400, padX = 40, padY = 44;
   const chartW = w - padX * 2;
   const chartH = h - padY * 2;
   const slot = chartW / steps.length;
-  const barW = slot * 0.62;
+  const barW = slot * 0.68;
 
   const maxVal = Math.max(...steps.map((s) => s.runningTo), data.inputs.current.opRev + data.inputs.current.othRev);
   const minVal = Math.min(...steps.map((s) => s.runningTo), 0);
@@ -94,7 +120,7 @@ export function Waterfall({ data }: WaterfallProps) {
       </Stack>
 
       <Stack direction="row" gap={3.5} sx={{ mt: 2.5, mb: 1.5, alignItems: 'baseline' }}>
-        <Box sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 44, letterSpacing: '-0.8px', lineHeight: 1 }}>
+        <Box sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 54, letterSpacing: '-1px', lineHeight: 1 }}>
           {PESO}{fmtMillions(data.current.totalMargin)}M
         </Box>
         <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
@@ -170,7 +196,7 @@ export function Waterfall({ data }: WaterfallProps) {
                   y2={s.kind === 'subtotal' && positions[i + 1].start !== 0 ? yScale(s.runningTo) : positions[i].top}
                   stroke={alpha(colors.ink, 0.2)} strokeWidth="1" strokeDasharray="3 3" />
               )}
-              <text x={x + barW / 2} y={h - 10} textAnchor="middle" fontSize="10"
+              <text x={x + barW / 2} y={h - 12} textAnchor="middle" fontSize="11"
                 fill={isHover ? color : colors.inkDim} fontFamily="Inter, sans-serif"
                 style={{ transition: 'fill 0.15s', fontWeight: isHover ? 600 : 400 }}>
                 {s.label}

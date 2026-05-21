@@ -4,6 +4,16 @@ import { MONTHS_SEED, computePeriod, getPeriodSlices } from '../utils/pnl';
 
 const STORAGE_KEY = 'ledger-console:months:v2';
 
+function currentMonthId(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function stripCurrentAndFuture(months: MonthRecord[]): MonthRecord[] {
+  const cutoff = currentMonthId();
+  return months.filter((m) => m.id < cutoff);
+}
+
 function loadFromStorage(): MonthRecord[] {
   if (typeof window === 'undefined') return MONTHS_SEED;
   try {
@@ -11,7 +21,7 @@ function loadFromStorage(): MonthRecord[] {
     if (!raw) return MONTHS_SEED;
     const parsed = JSON.parse(raw) as MonthRecord[];
     if (!Array.isArray(parsed) || parsed.length === 0) return MONTHS_SEED;
-    return parsed;
+    return stripCurrentAndFuture(parsed);
   } catch {
     return MONTHS_SEED;
   }
@@ -61,6 +71,16 @@ export function usePnlState() {
     );
   }, []);
 
+  const importMonths = useCallback((imported: MonthRecord[]) => {
+    setMonths((prev) => {
+      const map = new Map(prev.map((m) => [m.id, m]));
+      for (const m of imported) map.set(m.id, m);
+      return stripCurrentAndFuture(
+        [...map.values()].sort((a, b) => a.id.localeCompare(b.id)),
+      );
+    });
+  }, []);
+
   const resetAll = useCallback(() => {
     setMonths(MONTHS_SEED);
     try {
@@ -77,6 +97,7 @@ export function usePnlState() {
     updateMonthField,
     resetMonth,
     resetAll,
+    importMonths,
     displayData,
     computed,
   };

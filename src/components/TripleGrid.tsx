@@ -38,7 +38,7 @@ function CardShell({ children }: { children: React.ReactNode }) {
         borderRadius: '18px',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        p: 2.75,
+        p: 3.25,
         boxShadow: `0 20px 60px -20px ${alpha(colors.ink, 0.15)}`,
       }}
     >
@@ -74,7 +74,7 @@ function RevenueMix({ data }: TripleGridProps) {
         </Box>
       </Stack>
 
-      <Box sx={{ display: 'flex', height: 14, mt: 3, borderRadius: 99, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', height: 22, mt: 3, borderRadius: 99, overflow: 'hidden' }}>
         <Box sx={{ width: `${opShare}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.accent2})`, transition: 'width 0.6s ease' }} />
         <Box sx={{ width: `${othShare}%`, background: alpha(colors.accent3, 0.7), transition: 'width 0.6s ease' }} />
       </Box>
@@ -146,7 +146,7 @@ function CostBreakdown({ data }: TripleGridProps) {
                   {PESO}{fmtMillions(it.value)}M · {pct.toFixed(0)}%
                 </Typography>
               </Stack>
-              <Box sx={{ height: 4, background: alpha(colors.ink, 0.06), borderRadius: 99, overflow: 'hidden' }}>
+              <Box sx={{ height: 8, background: alpha(colors.ink, 0.06), borderRadius: 99, overflow: 'hidden' }}>
                 <Box
                   sx={{
                     height: '100%', width: `${pct}%`,
@@ -196,7 +196,7 @@ function ActivityFeed({ data }: TripleGridProps) {
             direction="row"
             gap={1.5}
             sx={{
-              py: 1.25,
+              py: 1.75,
               borderBottom: `1px solid ${colors.border}`,
               '&:last-of-type': { borderBottom: 'none' },
               cursor: 'default',
@@ -206,7 +206,7 @@ function ActivityFeed({ data }: TripleGridProps) {
           >
             <Box
               sx={{
-                width: 32, height: 32, flexShrink: 0, borderRadius: '8px',
+                width: 38, height: 38, flexShrink: 0, borderRadius: '10px',
                 background: alpha(toneColor[e.tone], 0.12), color: toneColor[e.tone],
                 display: 'grid', placeItems: 'center',
                 fontFamily: '"JetBrains Mono", monospace', fontSize: 11, fontWeight: 600,
