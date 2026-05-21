@@ -18,7 +18,6 @@ export default function App() {
     setActivePeriod,
     updateMonthField,
     resetMonth,
-    resetAll,
     displayData,
     computed,
   } = usePnlState();
