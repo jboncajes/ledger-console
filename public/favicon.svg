@@ -1,13 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#5b6fd6"/>
-      <stop offset="100%" stop-color="#3aa982"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4B6EF5"/>
+      <stop offset="100%" stop-color="#2EB88A"/>
     </linearGradient>
   </defs>
-  <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)"/>
-  <path d="M20 18 v28 h12" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="42" cy="22" r="3.5" fill="#fff"/>
-  <circle cx="42" cy="34" r="3.5" fill="#fff"/>
-  <circle cx="42" cy="46" r="3.5" fill="#fff"/>
+
+  <!-- Background -->
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bg)"/>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
+
+  <!-- L-axis — the Ledger Console signature mark -->
+  <path d="M13 11 V49 H51"
+    fill="none" stroke="#ffffff" stroke-opacity="0.9"
+    stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Bars rising from the baseline (y=49) -->
+  <!-- Bar 1: short -->
+  <rect x="17" y="39" width="9" height="10" rx="2" fill="#ffffff" fill-opacity="0.45"/>
+  <!-- Bar 2: medium -->
+  <rect x="30" y="30" width="9" height="19" rx="2" fill="#ffffff" fill-opacity="0.65"/>
+  <!-- Bar 3: tall -->
+  <rect x="43" y="19" width="9" height="30" rx="2" fill="#ffffff" fill-opacity="0.88"/>
+
+  <!-- Trend line through bar tops -->
+  <polyline points="21.5,39 34.5,30 47.5,19"
+    fill="none" stroke="#ffffff" stroke-width="2.4"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Dots at each bar peak -->
+  <circle cx="21.5" cy="39" r="3.2" fill="#ffffff"/>
+  <circle cx="34.5" cy="30" r="3.2" fill="#ffffff"/>
+  <circle cx="47.5" cy="19" r="3.2" fill="#ffffff"/>
+
+  <!-- Inner dot accent (keeps them from looking flat) -->
+  <circle cx="21.5" cy="39" r="1.3" fill="#3d5ce8" opacity="0.6"/>
+  <circle cx="34.5" cy="30" r="1.3" fill="#3d5ce8" opacity="0.6"/>
+  <circle cx="47.5" cy="19" r="1.3" fill="#3d5ce8" opacity="0.6"/>
 </svg>
