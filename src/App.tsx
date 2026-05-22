@@ -130,6 +130,7 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
             gridTemplateColumns: '2fr 1fr',
             gap: 2,
             '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
+            '& > *': { minWidth: 0 },
           }}
         >
           <Waterfall months={months} />

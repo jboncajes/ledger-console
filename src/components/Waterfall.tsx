@@ -91,9 +91,9 @@ export function Waterfall({ months }: TrendChartProps) {
           ? <CheckRoundedIcon sx={{ fontSize: 13, color: colors.accent2 }} />
           : <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />}
       </IconButton>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="flex-start" gap={{ xs: 1.5, sm: 0 }}>
         <Box>
-          <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 22, letterSpacing: '-0.3px' }}>
+          <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: { xs: 18, sm: 22 }, letterSpacing: '-0.3px' }}>
             12-Month Trend{' '}
             <Box component="em" sx={{ fontStyle: 'italic', color: colors.accent }}>· rolling</Box>
           </Typography>
@@ -101,7 +101,7 @@ export function Waterfall({ months }: TrendChartProps) {
             Revenue, operating margin, and total margin over time
           </Typography>
         </Box>
-        <Stack direction="row" gap={2.5} sx={{ fontSize: 11.5, color: 'text.secondary', flexShrink: 0, pt: 0.5 }}>
+        <Stack direction="row" gap={2} flexWrap="wrap" sx={{ fontSize: 11.5, color: 'text.secondary', pt: { xs: 0, sm: 0.5 } }}>
           {SERIES.map((s, i) => (
             <Stack key={s.key} direction="row" alignItems="center" gap={0.75}>
               <Box sx={{ width: 18, height: 2.5, borderRadius: '2px', background: seriesColors[i] }} />
@@ -142,12 +142,11 @@ export function Waterfall({ months }: TrendChartProps) {
         )}
       </Box>
 
+      <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
       <Box
         component="svg"
         viewBox={`0 0 ${W} ${H}`}
-        width="100%"
-        height={H}
-        sx={{ display: 'block' }}
+        sx={{ display: 'block', minWidth: W, width: '100%', height: H }}
         onMouseLeave={() => setHover(null)}
       >
         {yTicks.map(({ t, val, y }) => (
@@ -206,6 +205,7 @@ export function Waterfall({ months }: TrendChartProps) {
             </g>
           );
         })}
+      </Box>
       </Box>
     </Box>
   );
