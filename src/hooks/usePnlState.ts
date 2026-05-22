@@ -4,13 +4,16 @@ import { MONTHS_SEED, computePeriod, getPeriodSlices } from '../utils/pnl';
 
 const STORAGE_KEY = 'ledger-console:months:v2';
 
-function currentMonthId(): string {
+function cutoffMonthId(): string {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Keep only months strictly before the previous month (i.e. 2+ months ago)
+  const m = now.getMonth(); // 0-indexed current = 1-indexed previous month
+  if (m === 0) return `${now.getFullYear() - 1}-12`;
+  return `${now.getFullYear()}-${String(m).padStart(2, '0')}`;
 }
 
-function stripCurrentAndFuture(months: MonthRecord[]): MonthRecord[] {
-  const cutoff = currentMonthId();
+function stripRecentMonths(months: MonthRecord[]): MonthRecord[] {
+  const cutoff = cutoffMonthId();
   return months.filter((m) => m.id < cutoff);
 }
 
@@ -21,7 +24,7 @@ function loadFromStorage(): MonthRecord[] {
     if (!raw) return MONTHS_SEED;
     const parsed = JSON.parse(raw) as MonthRecord[];
     if (!Array.isArray(parsed) || parsed.length === 0) return MONTHS_SEED;
-    return stripCurrentAndFuture(parsed);
+    return stripRecentMonths(parsed);
   } catch {
     return MONTHS_SEED;
   }
@@ -75,7 +78,7 @@ export function usePnlState() {
     setMonths((prev) => {
       const map = new Map(prev.map((m) => [m.id, m]));
       for (const m of imported) map.set(m.id, m);
-      return stripCurrentAndFuture(
+      return stripRecentMonths(
         [...map.values()].sort((a, b) => a.id.localeCompare(b.id)),
       );
     });

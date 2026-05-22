@@ -84,10 +84,10 @@ const ZERO_INPUTS: PnlInputs = { opRev: 0, othRev: 0, power: 0, om: 0, deprec: 0
 
 function generateMonthsSeed(): MonthRecord[] {
   const now = new Date();
-  // getMonth() is 0-indexed; its numeric value equals the 1-indexed previous month
-  let endMonth = now.getMonth();
+  // getMonth()-1 gives the 1-indexed month that is 2 months before the current month
+  let endMonth = now.getMonth() - 1;
   let endYear = now.getFullYear();
-  if (endMonth === 0) { endMonth = 12; endYear -= 1; }
+  if (endMonth <= 0) { endMonth += 12; endYear -= 1; }
 
   const months: MonthRecord[] = [];
   let y = SEED_START.year;
