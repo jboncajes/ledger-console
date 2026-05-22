@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Box, Stack, Typography, alpha } from '@mui/material';
+import { Box, IconButton, Stack, Typography, alpha } from '@mui/material';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import type { MonthRecord } from '../types/pnl';
 import { useColors } from '../theme/theme';
 import { fmtMillions, PESO } from '../utils/format';
 import { computePeriod } from '../utils/pnl';
+import { useCopyCard } from '../hooks/useCopyCard';
 
 interface TrendChartProps {
   months: MonthRecord[];
@@ -11,13 +14,14 @@ interface TrendChartProps {
 
 const SERIES = [
   { key: 'totalRev' as const, label: 'Revenue', amber: false },
-  { key: 'opMargin' as const, label: 'Op. Margin', amber: false },
+  { key: 'opMargin' as const, label: 'Operating Margin', amber: false },
   { key: 'totalMargin' as const, label: 'Total Margin', amber: true },
 ];
 
 export function Waterfall({ months }: TrendChartProps) {
   const colors = useColors();
   const [hover, setHover] = useState<number | null>(null);
+  const { cardRef, copyBtnRef, hovered, setHovered, copied, handleCopy } = useCopyCard();
 
   const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));
   const recent = sorted.slice(-12);
@@ -51,7 +55,11 @@ export function Waterfall({ months }: TrendChartProps) {
 
   return (
     <Box
+      ref={cardRef}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       sx={{
+        position: 'relative',
         background: colors.panel,
         border: `1px solid ${colors.border}`,
         borderRadius: '18px',
@@ -61,6 +69,28 @@ export function Waterfall({ months }: TrendChartProps) {
         boxShadow: `0 20px 60px -20px ${alpha(colors.ink, 0.15)}`,
       }}
     >
+      <IconButton
+        ref={copyBtnRef}
+        onClick={handleCopy}
+        onMouseEnter={(e) => e.stopPropagation()}
+        size="small"
+        sx={{
+          position: 'absolute', top: 12, right: 12,
+          width: 28, height: 28,
+          opacity: hovered ? 1 : 0,
+          pointerEvents: hovered ? 'auto' : 'none',
+          transition: 'opacity 0.18s',
+          background: alpha(colors.panel, 0.95),
+          border: `1px solid ${colors.border}`,
+          borderRadius: '8px',
+          zIndex: 1,
+          '&:hover': { background: alpha(colors.ink, 0.08), borderColor: colors.borderStrong },
+        }}
+      >
+        {copied
+          ? <CheckRoundedIcon sx={{ fontSize: 13, color: colors.accent2 }} />
+          : <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />}
+      </IconButton>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Box>
           <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 22, letterSpacing: '-0.3px' }}>

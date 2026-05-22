@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
 import { Box, IconButton, LinearProgress, Stack, Tooltip, Typography, alpha, keyframes } from '@mui/material';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
-import html2canvas from 'html2canvas';
 import type { PnlComputed } from '../types/pnl';
 import { useColors } from '../theme/theme';
 import { fmtMillions, fmtPctDelta, PESO } from '../utils/format';
+import { useCopyCard } from '../hooks/useCopyCard';
 
 const rise = keyframes`
   from { opacity: 0; transform: translateY(8px); }
@@ -43,42 +42,7 @@ function KpiCard({
   inverseGood, netMarginMode, chart, meterPct, meterColor = 'primary', delay,
 }: KpiCardProps) {
   const colors = useColors();
-  const cardRef = useRef<HTMLDivElement>(null);
-  const copyBtnRef = useRef<HTMLButtonElement>(null);
-  const [hovered, setHovered] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!cardRef.current) return;
-    try {
-      // Build the blob promise BEFORE calling clipboard.write so the capture
-      // runs in the background while the browser still sees this as a direct
-      // user-gesture response — fixes "subsequent copies silently rejected" bug.
-      const blobPromise = html2canvas(cardRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null,
-        ignoreElements: (el) =>
-          el === copyBtnRef.current || (copyBtnRef.current?.contains(el) ?? false),
-      }).then(
-        (canvas) =>
-          new Promise<Blob>((resolve, reject) => {
-            canvas.toBlob((blob) => {
-              if (blob) resolve(blob);
-              else reject(new Error('No blob'));
-            }, 'image/png');
-          }),
-      );
-
-      // clipboard.write called synchronously — keeps user-gesture context alive
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPromise })]);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Copy failed', err);
-    }
-  };
+  const { cardRef, copyBtnRef, hovered, setHovered, copied, handleCopy } = useCopyCard();
 
   const delta = curr - prior;
   let deltaText = fmtPctDelta(curr, prior);
@@ -207,31 +171,37 @@ function KpiCard({
 }
 
 function chg(curr: number, prev: number): string {
+  if (curr === 0 && prev === 0) return 'no data to compare';
   const d = curr - prev;
+  if (d === 0) return 'unchanged vs prior';
   const pct = Math.abs(prev) > 0 ? (Math.abs(d) / Math.abs(prev)) * 100 : 0;
-  return `${d >= 0 ? 'up' : 'down'} ${PESO}${fmtMillions(Math.abs(d))}M (${pct.toFixed(1)}%) vs prior`;
+  return `${d > 0 ? 'up' : 'down'} ${PESO}${fmtMillions(Math.abs(d))}M (${pct.toFixed(1)}%) vs prior`;
 }
 
 /** Comparison bar chart — prior (left) vs current (right) */
-function BarChart({ prior, curr, priorColor, currColor, priorLabel = 'Prior', currLabel = 'Current' }: {
+function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior', currLabel = 'Current' }: {
+  id: string;
   prior: number; curr: number;
   priorColor: string; currColor: string;
   priorLabel?: string; currLabel?: string;
 }) {
+  const pgId = `${id}-p`;
+  const cgId = `${id}-c`;
+
   const maxV = Math.max(Math.abs(prior), Math.abs(curr), 1);
-  const BAR_H = 80; // max bar height in the 120px viewbox
+  const BAR_H = 80;
   const priorH = Math.max(4, (Math.abs(prior) / maxV) * BAR_H);
   const currH = Math.max(4, (Math.abs(curr) / maxV) * BAR_H);
-  const BASE = 96; // y-axis baseline
+  const BASE = 96;
 
   return (
     <svg width="100%" height="120" viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <linearGradient id="kpi-prior-grad" x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={pgId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={priorColor} stopOpacity="0.55" />
           <stop offset="100%" stopColor={priorColor} stopOpacity="0.25" />
         </linearGradient>
-        <linearGradient id="kpi-curr-grad" x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={cgId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={currColor} stopOpacity="1" />
           <stop offset="100%" stopColor={currColor} stopOpacity="0.6" />
         </linearGradient>
@@ -239,7 +209,7 @@ function BarChart({ prior, curr, priorColor, currColor, priorLabel = 'Prior', cu
 
       {/* Prior bar */}
       <rect x="22" y={BASE - priorH} width="96" height={priorH} rx="7"
-        fill="url(#kpi-prior-grad)" />
+        fill={`url(#${pgId})`} />
       <text x="70" y={BASE - priorH - 7} textAnchor="middle"
         fontFamily="JetBrains Mono, monospace" fontSize="11" fill={priorColor} opacity="0.85">
         {fmtMillions(prior)}M
@@ -251,7 +221,7 @@ function BarChart({ prior, curr, priorColor, currColor, priorLabel = 'Prior', cu
 
       {/* Current bar */}
       <rect x="142" y={BASE - currH} width="96" height={currH} rx="7"
-        fill="url(#kpi-curr-grad)" />
+        fill={`url(#${cgId})`} />
       <text x="190" y={BASE - currH - 7} textAnchor="middle"
         fontFamily="JetBrains Mono, monospace" fontSize="11" fill={currColor}>
         {fmtMillions(curr)}M
@@ -268,7 +238,9 @@ function BarChart({ prior, curr, priorColor, currColor, priorLabel = 'Prior', cu
 }
 
 /** Area / line chart for net margin */
-function AreaChart({ prior, curr, color }: { prior: number; curr: number; color: string }) {
+function AreaChart({ id, prior, curr, color }: { id: string; prior: number; curr: number; color: string }) {
+  const agId = `${id}-a`;
+
   const isPositive = curr >= 0;
   const baseline = isPositive ? 96 : 16;
   const maxAbs = Math.max(Math.abs(prior), Math.abs(curr), 1);
@@ -285,12 +257,12 @@ function AreaChart({ prior, curr, color }: { prior: number; curr: number; color:
   return (
     <svg width="100%" height="120" viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <linearGradient id="kpi-area-grad" x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={agId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.5" />
           <stop offset="100%" stopColor={color} stopOpacity="0.04" />
         </linearGradient>
       </defs>
-      <path d={path} fill="url(#kpi-area-grad)" />
+      <path d={path} fill={`url(#${agId})`} />
       <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
       {/* Prior point */}
       <circle cx="0" cy={priorY} r="4.5" fill={color} opacity="0.5" />
@@ -316,10 +288,39 @@ export function KpiGrid({ data }: KpiGridProps) {
 
   const powRatio = current.totalRev > 0 ? (ci.power / current.totalRev) * 100 : 0;
 
-  const torDesc = `${PESO}${fmtMillions(current.totalRev)}M this period — ${chg(current.totalRev, prior.totalRev)}. ${current.totalRev >= prior.totalRev ? 'Revenue is tracking ahead of the prior period.' : 'Revenue contracted — check tariff collection rates and consumption volume.'}`;
-  const powDesc = `${PESO}${fmtMillions(ci.power)}M this period (${powRatio.toFixed(1)}% of revenue) — ${chg(ci.power, pi.power)}. ${ci.power > pi.power ? 'Rising power costs are compressing margins.' : 'Lower power costs are supporting margin expansion.'}`;
-  const omDesc = `${PESO}${fmtMillions(ci.om)}M this period — ${chg(ci.om, pi.om)}. ${ci.om > pi.om ? 'Costs rose vs prior — review labor and contracted services for overruns.' : 'Costs held below prior period.'}`;
-  const nmDesc = `${PESO}${fmtMillions(current.netMargin)}M this period — ${chg(current.netMargin, prior.netMargin)}. ${current.netMargin >= 0 ? 'Positive net margin — revenue covers all operating, financing, and non-cash charges.' : 'Negative net margin — total deductions exceeded revenue this period.'}`;
+  const torDesc = (current.totalRev === 0 && prior.totalRev === 0)
+    ? 'No data recorded for this period.'
+    : `${PESO}${fmtMillions(current.totalRev)}M this period — ${chg(current.totalRev, prior.totalRev)}. ${
+        current.totalRev === prior.totalRev ? 'Revenue is flat vs prior period.' :
+        current.totalRev > prior.totalRev ? 'Revenue is tracking ahead of the prior period.' :
+        'Revenue contracted — check tariff collection rates and consumption volume.'
+      }`;
+
+  const powDesc = (ci.power === 0 && pi.power === 0)
+    ? 'No data recorded for this period.'
+    : `${PESO}${fmtMillions(ci.power)}M this period (${powRatio.toFixed(1)}% of revenue) — ${chg(ci.power, pi.power)}. ${
+        ci.power === pi.power ? 'Power costs are flat vs prior period.' :
+        ci.power > pi.power ? 'Rising power costs are compressing margins.' :
+        'Lower power costs are supporting margin expansion.'
+      }`;
+
+  const omDesc = (ci.om === 0 && pi.om === 0)
+    ? 'No data recorded for this period.'
+    : `${PESO}${fmtMillions(ci.om)}M this period — ${chg(ci.om, pi.om)}. ${
+        ci.om === pi.om ? 'Costs are flat vs prior period.' :
+        ci.om > pi.om ? 'Costs rose vs prior — review labor and contracted services for overruns.' :
+        'Costs held below prior period.'
+      }`;
+
+  const nmDesc = (current.netMargin === 0 && prior.netMargin === 0)
+    ? 'No data recorded for this period.'
+    : `${PESO}${fmtMillions(current.netMargin)}M this period — ${chg(current.netMargin, prior.netMargin)}. ${
+        current.netMargin === prior.netMargin ? 'Net margin is flat vs prior period.' :
+        prior.netMargin < 0 && current.netMargin >= 0 ? 'Returned to profit this period.' :
+        prior.netMargin >= 0 && current.netMargin < 0 ? 'Slipped into loss this period.' :
+        current.netMargin >= 0 ? 'Positive net margin — revenue covers all operating, financing, and non-cash charges.' :
+        'Negative net margin — total deductions exceeded revenue this period.'
+      }`;
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(2, 1fr)' }, '@media (max-width: 700px)': { gridTemplateColumns: '1fr' } }}>
@@ -327,7 +328,7 @@ export function KpiGrid({ data }: KpiGridProps) {
         label="Total Operating Revenue"
         curr={current.totalRev} prior={prior.totalRev}
         description={torDesc}
-        chart={<BarChart prior={prior.totalRev} curr={current.totalRev} priorColor={colors.accent} currColor={colors.accent} />}
+        chart={<BarChart id="tor" prior={prior.totalRev} curr={current.totalRev} priorColor={colors.accent} currColor={colors.accent} />}
         meterPct={(current.totalRev / 350_000_000) * 100}
         delay={0.05}
       />
@@ -337,7 +338,7 @@ export function KpiGrid({ data }: KpiGridProps) {
         curr={ci.power} prior={pi.power}
         inverseGood
         description={powDesc}
-        chart={<BarChart prior={pi.power} curr={ci.power} priorColor={colors.accent2} currColor={colors.accent2} />}
+        chart={<BarChart id="pow" prior={pi.power} curr={ci.power} priorColor={colors.accent2} currColor={colors.accent2} />}
         meterPct={(ci.power / 250_000_000) * 100}
         meterColor="success"
         delay={0.1}
@@ -348,7 +349,7 @@ export function KpiGrid({ data }: KpiGridProps) {
         curr={ci.om} prior={pi.om}
         inverseGood
         description={omDesc}
-        chart={<BarChart prior={pi.om} curr={ci.om} priorColor={colors.accent3} currColor={colors.accent3} />}
+        chart={<BarChart id="om" prior={pi.om} curr={ci.om} priorColor={colors.accent3} currColor={colors.accent3} />}
         meterPct={(ci.om / 50_000_000) * 100}
         meterColor="warning"
         delay={0.15}
@@ -359,7 +360,7 @@ export function KpiGrid({ data }: KpiGridProps) {
         curr={current.netMargin} prior={prior.netMargin}
         netMarginMode
         description={nmDesc}
-        chart={<AreaChart prior={prior.netMargin} curr={current.netMargin} color={current.netMargin >= 0 ? colors.accent2 : colors.danger} />}
+        chart={<AreaChart id="nm" prior={prior.netMargin} curr={current.netMargin} color={current.netMargin >= 0 ? colors.accent2 : colors.danger} />}
         meterPct={(Math.abs(current.netMargin) / 30_000_000) * 100}
         delay={0.2}
       />

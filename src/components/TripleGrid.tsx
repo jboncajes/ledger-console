@@ -1,11 +1,14 @@
-import { Box, Stack, Typography, alpha } from '@mui/material';
+import { Box, IconButton, Stack, Typography, alpha } from '@mui/material';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import BuildRoundedIcon from '@mui/icons-material/BuildRounded';
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import type { PnlComputed } from '../types/pnl';
 import { useColors } from '../theme/theme';
 import { fmtMillions, PESO } from '../utils/format';
+import { useCopyCard } from '../hooks/useCopyCard';
 
 interface TripleGridProps {
   data: PnlComputed;
@@ -30,9 +33,14 @@ export function TripleGrid({ data }: TripleGridProps) {
 
 function CardShell({ children }: { children: React.ReactNode }) {
   const colors = useColors();
+  const { cardRef, copyBtnRef, hovered, setHovered, copied, handleCopy } = useCopyCard();
   return (
     <Box
+      ref={cardRef}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       sx={{
+        position: 'relative',
         background: colors.panel,
         border: `1px solid ${colors.border}`,
         borderRadius: '18px',
@@ -42,6 +50,28 @@ function CardShell({ children }: { children: React.ReactNode }) {
         boxShadow: `0 20px 60px -20px ${alpha(colors.ink, 0.15)}`,
       }}
     >
+      <IconButton
+        ref={copyBtnRef}
+        onClick={handleCopy}
+        onMouseEnter={(e) => e.stopPropagation()}
+        size="small"
+        sx={{
+          position: 'absolute', top: 12, right: 12,
+          width: 28, height: 28,
+          opacity: hovered ? 1 : 0,
+          pointerEvents: hovered ? 'auto' : 'none',
+          transition: 'opacity 0.18s',
+          background: alpha(colors.panel, 0.95),
+          border: `1px solid ${colors.border}`,
+          borderRadius: '8px',
+          zIndex: 1,
+          '&:hover': { background: alpha(colors.ink, 0.08), borderColor: colors.borderStrong },
+        }}
+      >
+        {copied
+          ? <CheckRoundedIcon sx={{ fontSize: 13, color: colors.accent2 }} />
+          : <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />}
+      </IconButton>
       {children}
     </Box>
   );

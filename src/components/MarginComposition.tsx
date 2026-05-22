@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Box, Stack, Tooltip, Typography, alpha } from '@mui/material';
+import { Box, IconButton, Stack, Tooltip, Typography, alpha } from '@mui/material';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import type { PnlComputed } from '../types/pnl';
 import { useColors } from '../theme/theme';
 import { fmtMillions, PESO } from '../utils/format';
+import { useCopyCard } from '../hooks/useCopyCard';
 
 interface MarginCompositionProps {
   data: PnlComputed;
@@ -78,6 +81,7 @@ function BarRow({ label, value, maxValue, tone, description, onHover }: BarRowPr
 export function MarginComposition({ data }: MarginCompositionProps) {
   const colors = useColors();
   const [, setHover] = useState<string | null>(null);
+  const { cardRef, copyBtnRef, hovered, setHovered, copied, handleCopy } = useCopyCard();
 
   const ratio = data.current.totalRev > 0 ? (data.current.totalMargin / data.current.totalRev) * 100 : 0;
   const ratioPrior = data.prior.totalRev > 0 ? (data.prior.totalMargin / data.prior.totalRev) * 100 : 0;
@@ -93,16 +97,50 @@ export function MarginComposition({ data }: MarginCompositionProps) {
   const maxBar = Math.max(data.current.opMargin, c.deprec, c.interest, c.nonOpRev, c.rfsc, 1);
 
   function chg(curr: number, prev: number) {
+    if (curr === 0 && prev === 0) return 'no data to compare';
     const diff = curr - prev;
+    if (diff === 0) return 'unchanged vs prior';
     const pct = Math.abs(prev) > 0 ? (Math.abs(diff) / Math.abs(prev)) * 100 : 0;
-    return `${diff >= 0 ? 'up' : 'down'} ${PESO}${fmtMillions(Math.abs(diff))}M (${pct.toFixed(1)}%) vs prior`;
+    return `${diff > 0 ? 'up' : 'down'} ${PESO}${fmtMillions(Math.abs(diff))}M (${pct.toFixed(1)}%) vs prior`;
   }
 
   const opMarginRatio = data.current.totalRev > 0 ? (data.current.opMargin / data.current.totalRev) * 100 : 0;
-  const donutDescription = `${ratio.toFixed(1)}% margin ratio this period — ${ratioDelta !== 0 ? `${arrowUp ? 'up' : 'down'} ${Math.abs(ratioDelta).toFixed(1)} pp vs prior.` : 'unchanged vs prior.'} Measures how much of each peso earned is retained after all deductions.`;
+  const donutDescription = (ratio === 0 && ratioPrior === 0)
+    ? 'No data recorded for this period. Margin ratio measures how much of each peso earned is retained after all deductions.'
+    : `${ratio.toFixed(1)}% margin ratio this period — ${
+        ratioDelta === 0 ? 'unchanged vs prior' :
+        `${arrowUp ? 'up' : 'down'} ${Math.abs(ratioDelta).toFixed(1)} pp vs prior`
+      }. Measures how much of each peso earned is retained after all deductions.`;
 
   return (
-    <Box sx={{ background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '18px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', p: 3, boxShadow: `0 20px 60px -20px ${alpha(colors.ink, 0.15)}` }}>
+    <Box
+      ref={cardRef}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      sx={{ position: 'relative', background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: '18px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', p: 3, boxShadow: `0 20px 60px -20px ${alpha(colors.ink, 0.15)}` }}
+    >
+      <IconButton
+        ref={copyBtnRef}
+        onClick={handleCopy}
+        onMouseEnter={(e) => e.stopPropagation()}
+        size="small"
+        sx={{
+          position: 'absolute', top: 12, right: 12,
+          width: 28, height: 28,
+          opacity: hovered ? 1 : 0,
+          pointerEvents: hovered ? 'auto' : 'none',
+          transition: 'opacity 0.18s',
+          background: alpha(colors.panel, 0.95),
+          border: `1px solid ${colors.border}`,
+          borderRadius: '8px',
+          zIndex: 1,
+          '&:hover': { background: alpha(colors.ink, 0.08), borderColor: colors.borderStrong },
+        }}
+      >
+        {copied
+          ? <CheckRoundedIcon sx={{ fontSize: 13, color: colors.accent2 }} />
+          : <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />}
+      </IconButton>
       <Box>
         <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 22, letterSpacing: '-0.3px' }}>
           Margin{' '}
@@ -147,19 +185,53 @@ export function MarginComposition({ data }: MarginCompositionProps) {
       </Tooltip>
 
       <BarRow label="Operating Margin" value={data.current.opMargin} maxValue={maxBar} tone="success"
-        description={`${PESO}${fmtMillions(data.current.opMargin)}M (${opMarginRatio.toFixed(1)}% of revenue) — ${chg(data.current.opMargin, data.prior.opMargin)}. Revenue after power and Operating and Maintenance, before non-cash charges and financing.`}
+        description={
+          data.current.opMargin === 0 && data.prior.opMargin === 0
+            ? 'No data recorded for this period.'
+            : `${PESO}${fmtMillions(data.current.opMargin)}M (${opMarginRatio.toFixed(1)}% of revenue) — ${chg(data.current.opMargin, data.prior.opMargin)}. ${
+                data.current.opMargin === data.prior.opMargin ? 'Flat vs prior period.' :
+                'Revenue after power and O&M, before non-cash charges and financing.'
+              }`
+        }
         onHover={setHover} />
       <BarRow label="Less: Deprec." value={c.deprec} maxValue={maxBar} tone="danger"
-        description={`${PESO}${fmtMillions(c.deprec)}M non-cash depreciation — ${chg(c.deprec, p.deprec)}. No cash impact; reduces reported margin only.`}
+        description={
+          c.deprec === 0 && p.deprec === 0
+            ? 'No data recorded for this period.'
+            : `${PESO}${fmtMillions(c.deprec)}M non-cash depreciation — ${chg(c.deprec, p.deprec)}. ${
+                c.deprec === p.deprec ? 'Unchanged vs prior. ' : ''
+              }No cash impact; reduces reported margin only.`
+        }
         onHover={setHover} />
       <BarRow label="Less: Interest" value={c.interest} maxValue={maxBar} tone="danger"
-        description={`${PESO}${fmtMillions(c.interest)}M financing cost — ${chg(c.interest, p.interest)}. ${c.interest < p.interest ? 'Declining interest signals debt paydown progress.' : 'Increased vs prior — check outstanding debt levels.'}`}
+        description={
+          c.interest === 0 && p.interest === 0
+            ? 'No data recorded for this period.'
+            : `${PESO}${fmtMillions(c.interest)}M financing cost — ${chg(c.interest, p.interest)}. ${
+                c.interest === p.interest ? 'Financing cost unchanged vs prior.' :
+                c.interest < p.interest ? 'Declining interest signals debt paydown progress.' :
+                'Increased vs prior — check outstanding debt levels.'
+              }`
+        }
         onHover={setHover} />
       <BarRow label="+ Non-Op Rev" value={c.nonOpRev} maxValue={maxBar} tone="success"
-        description={`${PESO}${fmtMillions(c.nonOpRev)}M — ${chg(c.nonOpRev, p.nonOpRev)}. Miscellaneous income from non-core activities such as rental and interest earned.`}
+        description={
+          c.nonOpRev === 0 && p.nonOpRev === 0
+            ? 'No data recorded for this period.'
+            : `${PESO}${fmtMillions(c.nonOpRev)}M — ${chg(c.nonOpRev, p.nonOpRev)}. ${
+                c.nonOpRev === p.nonOpRev ? 'Unchanged vs prior. ' : ''
+              }Miscellaneous income from non-core activities such as rental and interest earned.`
+        }
         onHover={setHover} />
       <BarRow label="+ RFSC" value={c.rfsc} maxValue={maxBar} tone="warning"
-        description={`${PESO}${fmtMillions(c.rfsc)}M — ${chg(c.rfsc, p.rfsc)}. Regulatory RFSC contribution added to net margin to arrive at total margin.`}
+        description={
+          c.rfsc === 0 && p.rfsc === 0
+            ? 'No data recorded for this period.'
+            : `${PESO}${fmtMillions(c.rfsc)}M — ${chg(c.rfsc, p.rfsc)}. ${
+                c.rfsc === p.rfsc ? 'RFSC contribution unchanged vs prior.' :
+                'Regulatory RFSC contribution added to net margin to arrive at total margin.'
+              }`
+        }
         onHover={setHover} />
     </Box>
   );
