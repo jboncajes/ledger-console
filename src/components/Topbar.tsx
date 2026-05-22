@@ -63,7 +63,7 @@ export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest }: Topbar
             Ledger Console
           </Typography>
           <Typography sx={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '1.5px', color: colors.inkSoft }}>
-            Finance · v1.0
+            Finance · v0.0
           </Typography>
         </Box>
       </Stack>

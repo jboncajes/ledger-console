@@ -1,94 +1,53 @@
 import { useState } from 'react';
 import { Box, Stack, Typography, alpha } from '@mui/material';
-import type { PnlComputed } from '../types/pnl';
+import type { MonthRecord } from '../types/pnl';
 import { useColors } from '../theme/theme';
-import { fmtAbsDelta, fmtMillions, PESO } from '../utils/format';
+import { fmtMillions, PESO } from '../utils/format';
+import { computePeriod } from '../utils/pnl';
 
-interface WaterfallProps {
-  data: PnlComputed;
+interface TrendChartProps {
+  months: MonthRecord[];
 }
 
-interface Step {
-  label: string;
-  value: number;
-  kind: 'inflow' | 'outflow' | 'subtotal';
-  runningTo: number;
-  description: string;
-}
+const SERIES = [
+  { key: 'totalRev' as const, label: 'Revenue', amber: false },
+  { key: 'opMargin' as const, label: 'Op. Margin', amber: false },
+  { key: 'totalMargin' as const, label: 'Total Margin', amber: true },
+];
 
-function d(curr: number, prev: number): string {
-  const diff = curr - prev;
-  const pct = Math.abs(prev) > 0 ? (Math.abs(diff) / Math.abs(prev)) * 100 : 0;
-  return `${diff >= 0 ? 'up' : 'down'} ${PESO}${fmtMillions(Math.abs(diff))}M (${pct.toFixed(1)}%) vs prior`;
-}
-
-function buildSteps(data: PnlComputed): Step[] {
-  const c = data.inputs.current;
-  const p = data.inputs.prior;
-  const totalRev = c.opRev + c.othRev;
-  const priorTotalRev = p.opRev + p.othRev;
-  const opMargin = totalRev - c.power - c.om;
-  const priorOpMargin = priorTotalRev - p.power - p.om;
-  const netOpMargin = opMargin - c.deprec - c.interest;
-  const priorNetOpMargin = priorOpMargin - p.deprec - p.interest;
-  const nonOp = c.nonOpRev - c.nonOpExp;
-  const priorNonOp = p.nonOpRev - p.nonOpExp;
-  const netMargin = netOpMargin + nonOp;
-  const priorNetMargin = priorNetOpMargin + priorNonOp;
-  const totalMargin = netMargin + c.rfsc;
-  const priorTotalMargin = priorNetMargin + p.rfsc;
-
-  const powRatio = totalRev > 0 ? (c.power / totalRev) * 100 : 0;
-  const opRatio = totalRev > 0 ? (opMargin / totalRev) * 100 : 0;
-
-  return [
-    { label: 'Total Revenue', value: totalRev, kind: 'subtotal', runningTo: totalRev,
-      description: `${PESO}${fmtMillions(totalRev)}M this period — ${d(totalRev, priorTotalRev)}. Opening figure from energy tariffs and other income.` },
-    { label: 'Power', value: -c.power, kind: 'outflow', runningTo: totalRev - c.power,
-      description: `${PESO}${fmtMillions(c.power)}M (${powRatio.toFixed(1)}% of revenue) — ${d(c.power, p.power)}. ${c.power > p.power ? 'Rising power costs are compressing the operating margin.' : 'Easing power costs are supporting margin expansion.'}` },
-    { label: 'O&M', value: -c.om, kind: 'outflow', runningTo: opMargin,
-      description: `${PESO}${fmtMillions(c.om)}M — ${d(c.om, p.om)}. ${c.om > p.om ? 'Costs rose vs prior — review labor and contracted services.' : 'Costs held below prior period.'}` },
-    { label: 'Op. Margin', value: opMargin, kind: 'subtotal', runningTo: opMargin,
-      description: `${PESO}${fmtMillions(opMargin)}M (${opRatio.toFixed(1)}% of revenue) — ${d(opMargin, priorOpMargin)}. Core efficiency before non-cash charges and financing.` },
-    { label: 'Deprec.', value: -c.deprec, kind: 'outflow', runningTo: opMargin - c.deprec,
-      description: `${PESO}${fmtMillions(c.deprec)}M non-cash depreciation — ${d(c.deprec, p.deprec)}. No cash impact; reduces reported margin only.` },
-    { label: 'Interest', value: -c.interest, kind: 'outflow', runningTo: netOpMargin,
-      description: `${PESO}${fmtMillions(c.interest)}M financing cost — ${d(c.interest, p.interest)}. ${c.interest < p.interest ? 'Declining interest signals progress in debt paydown.' : 'Increased interest expense — check debt levels.'}` },
-    { label: '+ Non-Op', value: nonOp, kind: 'inflow', runningTo: netMargin,
-      description: `Net ${PESO}${fmtMillions(nonOp)}M — ${d(nonOp, priorNonOp)}. Miscellaneous income (rental, interest earned) net of non-operating expenses.` },
-    { label: '+ RFSC', value: c.rfsc, kind: 'inflow', runningTo: totalMargin,
-      description: `${PESO}${fmtMillions(c.rfsc)}M — ${d(c.rfsc, p.rfsc)}. Regulatory RFSC contribution added back to arrive at total margin.` },
-    { label: 'Total Margin', value: totalMargin, kind: 'subtotal', runningTo: totalMargin,
-      description: `${PESO}${fmtMillions(totalMargin)}M final margin — ${d(totalMargin, priorTotalMargin)}. Bottom line combining all operating and non-operating flows.` },
-  ];
-}
-
-export function Waterfall({ data }: WaterfallProps) {
+export function Waterfall({ months }: TrendChartProps) {
   const colors = useColors();
-  const steps = buildSteps(data);
   const [hover, setHover] = useState<number | null>(null);
 
-  const w = 800, h = 400, padX = 40, padY = 44;
-  const chartW = w - padX * 2;
-  const chartH = h - padY * 2;
-  const slot = chartW / steps.length;
-  const barW = slot * 0.68;
+  const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));
+  const recent = sorted.slice(-12);
 
-  const maxVal = Math.max(...steps.map((s) => s.runningTo), data.inputs.current.opRev + data.inputs.current.othRev);
-  const minVal = Math.min(...steps.map((s) => s.runningTo), 0);
-  const yRange = maxVal - minVal || 1;
-  const yScale = (v: number) => padY + chartH - ((v - minVal) / yRange) * chartH;
-
-  const positions = steps.map((s, i) => {
-    let start: number, end: number;
-    if (s.kind === 'subtotal') { start = 0; end = s.runningTo; }
-    else { const prev = i === 0 ? 0 : steps[i - 1].runningTo; start = prev; end = s.runningTo; }
-    return { top: yScale(Math.max(start, end)), bottom: yScale(Math.min(start, end)), start, end };
+  const points = recent.map((m) => {
+    const c = computePeriod(m.inputs);
+    const short = m.label.slice(0, 3) + ' \'' + m.year.toString().slice(2);
+    return { label: short, fullLabel: m.label, totalRev: c.totalRev, opMargin: c.opMargin, totalMargin: c.totalMargin };
   });
 
-  const delta = data.current.totalMargin - data.prior.totalMargin;
-  const deltaUp = delta >= 0;
-  const hoveredStep = hover !== null ? steps[hover] : null;
+  const seriesColors = [colors.accent, colors.accent2, '#F59E0B'];
+
+  const W = 800, H = 320, PX = 56, PT = 28, PB = 36;
+  const cW = W - PX * 2;
+  const cH = H - PT - PB;
+
+  const allVals = points.flatMap((p) => [p.totalRev, p.opMargin, p.totalMargin]);
+  const minY = Math.min(...allVals, 0);
+  const maxY = Math.max(...allVals);
+  const yRange = maxY - minY || 1;
+
+  const yS = (v: number) => PT + cH - ((v - minY) / yRange) * cH;
+  const xS = (i: number) => PX + (i / Math.max(points.length - 1, 1)) * cW;
+
+  const linePath = (key: 'totalRev' | 'opMargin' | 'totalMargin') =>
+    points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xS(i).toFixed(1)},${yS(p[key]).toFixed(1)}`).join(' ');
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => ({ t, val: maxY - t * yRange, y: PT + cH * t }));
+
+  const hp = hover !== null ? points[hover] : null;
 
   return (
     <Box
@@ -105,115 +64,119 @@ export function Waterfall({ data }: WaterfallProps) {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Box>
           <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 22, letterSpacing: '-0.3px' }}>
-            P&L Waterfall{' '}
-            <Box component="em" sx={{ fontStyle: 'italic', color: colors.accent }}>· current period</Box>
+            12-Month Trend{' '}
+            <Box component="em" sx={{ fontStyle: 'italic', color: colors.accent }}>· rolling</Box>
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>
-            How total revenue flows down to total margin
+            Revenue, operating margin, and total margin over time
           </Typography>
         </Box>
-        <Stack direction="row" gap={2} sx={{ fontSize: 11.5, color: 'text.secondary' }}>
-          <LegendDot color={colors.accent} label="Inflow" />
-          <LegendDot color={colors.danger} label="Outflow" />
-          <LegendDot color={colors.accent2} label="Subtotal" />
+        <Stack direction="row" gap={2.5} sx={{ fontSize: 11.5, color: 'text.secondary', flexShrink: 0, pt: 0.5 }}>
+          {SERIES.map((s, i) => (
+            <Stack key={s.key} direction="row" alignItems="center" gap={0.75}>
+              <Box sx={{ width: 18, height: 2.5, borderRadius: '2px', background: seriesColors[i] }} />
+              <span>{s.label}</span>
+            </Stack>
+          ))}
         </Stack>
       </Stack>
 
-      <Stack direction="row" gap={3.5} sx={{ mt: 2.5, mb: 1.5, alignItems: 'baseline' }}>
-        <Box sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 54, letterSpacing: '-1px', lineHeight: 1 }}>
-          {PESO}{fmtMillions(data.current.totalMargin)}M
-        </Box>
-        <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
-          Total Margin (Gross of RFSC) ·{' '}
-          <Box component="strong" sx={{ color: deltaUp ? colors.accent2 : colors.danger, fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>
-            {fmtAbsDelta(data.current.totalMargin, data.prior.totalMargin)} vs prior
-          </Box>
-        </Typography>
-      </Stack>
-
-      {/* Hover description panel */}
       <Box
         sx={{
-          minHeight: 48,
-          mb: 1,
+          minHeight: 44,
+          mt: 2,
+          mb: 0.5,
           px: 1.75,
-          py: hoveredStep ? 1.25 : 0,
+          py: hp ? 1.25 : 0,
           borderRadius: '10px',
-          border: hoveredStep ? `1px solid ${alpha(colors.accent, 0.2)}` : '1px solid transparent',
-          background: hoveredStep ? alpha(colors.accent, 0.06) : 'transparent',
-          transition: 'all 0.2s ease',
-          overflow: 'hidden',
+          border: hp ? `1px solid ${alpha(colors.accent, 0.2)}` : '1px solid transparent',
+          background: hp ? alpha(colors.accent, 0.06) : 'transparent',
+          transition: 'all 0.18s ease',
         }}
       >
-        {hoveredStep && (
-          <Stack direction="row" gap={1.5} alignItems="flex-start">
-            <Box
-              sx={{
-                mt: 0.25,
-                width: 8,
-                height: 8,
-                flexShrink: 0,
-                borderRadius: '2px',
-                background: hoveredStep.kind === 'inflow' ? colors.accent : hoveredStep.kind === 'outflow' ? colors.danger : colors.accent2,
-              }}
-            />
-            <Box>
-              <Typography sx={{ fontSize: 12.5, fontWeight: 600, mb: 0.35 }}>
-                {hoveredStep.label}
-                <Box component="span" sx={{ ml: 1.5, fontFamily: '"JetBrains Mono", monospace', fontSize: 11.5, fontWeight: 500, color: 'text.secondary' }}>
-                  {hoveredStep.kind === 'outflow' ? '−' : '+'}{PESO}{fmtMillions(Math.abs(hoveredStep.value))}M
-                </Box>
-              </Typography>
-              <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.55 }}>
-                {hoveredStep.description}
-              </Typography>
-            </Box>
+        {hp && (
+          <Stack direction="row" gap={3} alignItems="center" flexWrap="wrap">
+            <Typography sx={{ fontSize: 13, fontWeight: 600, fontFamily: '"Instrument Serif", serif', minWidth: 100 }}>
+              {hp.fullLabel}
+            </Typography>
+            {SERIES.map((s, i) => (
+              <Stack key={s.key} direction="row" alignItems="center" gap={0.75}>
+                <Box sx={{ width: 7, height: 7, borderRadius: '50%', background: seriesColors[i] }} />
+                <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>{s.label}:</Typography>
+                <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>
+                  {PESO}{fmtMillions(hp[s.key])}M
+                </Typography>
+              </Stack>
+            ))}
           </Stack>
         )}
       </Box>
 
-      <Box component="svg" viewBox={`0 0 ${w} ${h}`} width="100%" height={h} sx={{ display: 'block' }}>
-        {[0, 0.25, 0.5, 0.75, 1].map((p) => (
-          <line key={p} x1={padX} x2={w - padX} y1={padY + chartH * p} y2={padY + chartH * p}
-            stroke={alpha(colors.ink, 0.06)} strokeWidth="1" />
+      <Box
+        component="svg"
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={H}
+        sx={{ display: 'block' }}
+        onMouseLeave={() => setHover(null)}
+      >
+        {yTicks.map(({ t, val, y }) => (
+          <g key={t}>
+            <line x1={PX} x2={W - PX} y1={y} y2={y} stroke={alpha(colors.ink, 0.07)} strokeWidth="1" />
+            <text x={PX - 8} y={y + 4} textAnchor="end" fontSize="10"
+              fill={colors.inkDim} fontFamily="JetBrains Mono, monospace">
+              {PESO}{fmtMillions(val)}M
+            </text>
+          </g>
         ))}
-        <line x1={padX} x2={w - padX} y1={yScale(0)} y2={yScale(0)}
-          stroke={alpha(colors.ink, 0.18)} strokeWidth="1" />
 
-        {steps.map((s, i) => {
-          const x = padX + slot * i + (slot - barW) / 2;
-          const { top, bottom } = positions[i];
-          const height = Math.max(2, bottom - top);
-          const color = s.kind === 'inflow' ? colors.accent : s.kind === 'outflow' ? colors.danger : colors.accent2;
-          const isHover = hover === i;
+        {/* Soft area fill under revenue */}
+        <path
+          d={`${linePath('totalRev')} L${xS(points.length - 1).toFixed(1)},${H - PB} L${PX},${H - PB} Z`}
+          fill={alpha(colors.accent, 0.055)}
+        />
+
+        {SERIES.map((s, i) => (
+          <path key={s.key} d={linePath(s.key)} fill="none"
+            stroke={seriesColors[i]} strokeWidth="2.5"
+            strokeLinejoin="round" strokeLinecap="round" />
+        ))}
+
+        {hover !== null && (
+          <>
+            <line
+              x1={xS(hover)} x2={xS(hover)} y1={PT} y2={H - PB}
+              stroke={alpha(colors.ink, 0.14)} strokeWidth="1" strokeDasharray="4 3"
+            />
+            {SERIES.map((s, i) => (
+              <circle key={s.key}
+                cx={xS(hover)} cy={yS(points[hover][s.key])} r="5"
+                fill={seriesColors[i]} stroke={colors.panel} strokeWidth="2"
+              />
+            ))}
+          </>
+        )}
+
+        {points.map((p, i) => {
+          const slotW = points.length > 1 ? cW / (points.length - 1) : cW;
           return (
-            <g key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={{ cursor: 'pointer' }}>
-              <rect x={x} y={top} width={barW} height={height} rx="4"
-                fill={color} opacity={isHover ? 1 : 0.82} style={{ transition: 'opacity 0.2s' }} />
-              {i < steps.length - 1 && (
-                <line x1={x + barW} x2={x + slot}
-                  y1={s.kind === 'subtotal' && positions[i + 1].start !== 0 ? yScale(s.runningTo) : positions[i].top}
-                  y2={s.kind === 'subtotal' && positions[i + 1].start !== 0 ? yScale(s.runningTo) : positions[i].top}
-                  stroke={alpha(colors.ink, 0.2)} strokeWidth="1" strokeDasharray="3 3" />
-              )}
-              <text x={x + barW / 2} y={h - 12} textAnchor="middle" fontSize="11"
-                fill={isHover ? color : colors.inkDim} fontFamily="Inter, sans-serif"
-                style={{ transition: 'fill 0.15s', fontWeight: isHover ? 600 : 400 }}>
-                {s.label}
+            <g key={i}>
+              <rect
+                x={xS(i) - slotW / 2} y={PT}
+                width={slotW} height={cH + PB}
+                fill="transparent" style={{ cursor: 'crosshair' }}
+                onMouseEnter={() => setHover(i)}
+              />
+              <text x={xS(i)} y={H - 6} textAnchor="middle" fontSize="10.5"
+                fill={hover === i ? colors.accent : colors.inkDim}
+                fontFamily="Inter, sans-serif"
+                style={{ transition: 'fill 0.15s', fontWeight: hover === i ? 600 : 400 }}>
+                {p.label}
               </text>
             </g>
           );
         })}
       </Box>
     </Box>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <Stack direction="row" alignItems="center" gap={0.75}>
-      <Box sx={{ width: 8, height: 8, borderRadius: '2px', background: color }} />
-      <span>{label}</span>
-    </Stack>
   );
 }

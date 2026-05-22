@@ -132,7 +132,7 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
             '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
           }}
         >
-          <Waterfall data={combined} />
+          <Waterfall months={months} />
           <MarginComposition data={combined} />
         </Box>
 
@@ -148,7 +148,7 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
             fontFamily: '"Instrument Serif", serif',
           }}
         >
-          Values in {PESO} Philippine Pesos · Demo data · Ledger Console
+          Values in {PESO} Philippine Peso · Ledger Console v0.0
         </Typography>
       </Stack>
 

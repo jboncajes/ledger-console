@@ -110,7 +110,7 @@ function CostBreakdown({ data }: TripleGridProps) {
   const c = data.inputs.current;
   const items = [
     { label: 'Power Purchased', value: c.power, icon: <BoltRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.accent },
-    { label: 'O&M Expense', value: c.om, icon: <BuildRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.accent3 },
+    { label: 'Operating and Maintenance', value: c.om, icon: <BuildRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.accent3 },
     { label: 'Depreciation', value: c.deprec, icon: <AccountBalanceRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.danger },
     { label: 'Interest', value: c.interest, icon: <AccountBalanceRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.inkSoft },
   ];
@@ -179,7 +179,7 @@ function ActivityFeed({ data }: TripleGridProps) {
   const events = [
     { icon: 'M', label: 'Margin shift', meta: `Total margin moved ${delta >= 0 ? 'up' : 'down'} this period`, value: `${delta >= 0 ? '+' : '−'}${PESO}${fmtMillions(Math.abs(delta))}M`, tone: delta >= 0 ? 'green' : 'red' },
     { icon: 'R', label: 'Revenue growth', meta: 'Operating revenue versus prior period', value: `${revDelta >= 0 ? '+' : '−'}${PESO}${fmtMillions(Math.abs(revDelta))}M`, tone: revDelta >= 0 ? 'green' : 'red' },
-    { icon: 'O', label: 'O&M variance', meta: 'Operating & maintenance versus plan', value: `${omDelta >= 0 ? '+' : '−'}${PESO}${fmtMillions(Math.abs(omDelta))}M`, tone: omDelta > 0 ? 'amber' : 'green' },
+    { icon: 'O', label: 'Operating and Maintenance variance', meta: 'Operating and maintenance versus plan', value: `${omDelta >= 0 ? '+' : '−'}${PESO}${fmtMillions(Math.abs(omDelta))}M`, tone: omDelta > 0 ? 'amber' : 'green' },
     { icon: 'I', label: 'Interest savings', meta: 'Year-on-year interest expense delta', value: `−${PESO}${fmtMillions(Math.abs(data.inputs.current.interest - data.inputs.prior.interest))}M`, tone: 'green' as const },
   ];
 

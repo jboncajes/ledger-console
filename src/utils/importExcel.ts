@@ -10,7 +10,7 @@ const LABEL_TO_FIELD: Record<string, keyof PnlInputs> = {
   'Operating Revenue':     'opRev',
   'Other Revenue':         'othRev',
   'Power Purchased':       'power',
-  'O&M Expense':           'om',
+  'Operating and Maintenance':           'om',
   'Depreciation':          'deprec',
   'Interest Expense':      'interest',
   'Non-Operating Revenue': 'nonOpRev',

@@ -147,7 +147,7 @@ export function MarginComposition({ data }: MarginCompositionProps) {
       </Tooltip>
 
       <BarRow label="Operating Margin" value={data.current.opMargin} maxValue={maxBar} tone="success"
-        description={`${PESO}${fmtMillions(data.current.opMargin)}M (${opMarginRatio.toFixed(1)}% of revenue) — ${chg(data.current.opMargin, data.prior.opMargin)}. Revenue after power and O&M, before non-cash charges and financing.`}
+        description={`${PESO}${fmtMillions(data.current.opMargin)}M (${opMarginRatio.toFixed(1)}% of revenue) — ${chg(data.current.opMargin, data.prior.opMargin)}. Revenue after power and Operating and Maintenance, before non-cash charges and financing.`}
         onHover={setHover} />
       <BarRow label="Less: Deprec." value={c.deprec} maxValue={maxBar} tone="danger"
         description={`${PESO}${fmtMillions(c.deprec)}M non-cash depreciation — ${chg(c.deprec, p.deprec)}. No cash impact; reduces reported margin only.`}

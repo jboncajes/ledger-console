@@ -344,7 +344,7 @@ export function KpiGrid({ data }: KpiGridProps) {
       />
 
       <KpiCard
-        label="O&M Expense"
+        label="Operating and Maintenance"
         curr={ci.om} prior={pi.om}
         inverseGood
         description={omDesc}

@@ -142,7 +142,7 @@ export function Sidebar({ onOpenDrawer }: SidebarProps) {
               mt: '2px',
             }}
           >
-            Finance · v1.0
+            Finance · v0.0
           </Typography>
         </Box>
       </Stack>
