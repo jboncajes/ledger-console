@@ -334,7 +334,7 @@ export function KpiGrid({ data }: KpiGridProps) {
       />
 
       <KpiCard
-        label="Power Purchased"
+        label="Total Power Purchased"
         curr={ci.power} prior={pi.power}
         inverseGood
         description={powDesc}
@@ -345,7 +345,7 @@ export function KpiGrid({ data }: KpiGridProps) {
       />
 
       <KpiCard
-        label="Operating and Maintenance"
+        label="Total Operating and Maintenance Expenses"
         curr={ci.om} prior={pi.om}
         inverseGood
         description={omDesc}

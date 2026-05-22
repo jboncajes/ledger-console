@@ -67,6 +67,25 @@ export function getPeriodSlices(months: MonthRecord[], period: PeriodView): PnlP
     };
   }
 
+  if (period === 'YoY') {
+    const latest = sorted[n - 1];
+
+    const current = sorted.find(
+        (m) => m.year === latest.year && m.month === latest.month,
+    );
+
+    const prior = sorted.find(
+        (m) => m.year === latest.year - 1 && m.month === latest.month,
+    );
+
+    return {
+        current: current?.inputs ?? EMPTY_INPUTS,
+        prior: prior?.inputs ?? EMPTY_INPUTS,
+        currentLabel: current?.label ?? 'Current',
+        priorLabel: prior?.label ?? 'Prior',
+    };
+  }
+
   // YTD
   const latest = sorted[n - 1];
   const currYTD = sorted.filter((m) => m.year === latest.year && m.month <= latest.month);

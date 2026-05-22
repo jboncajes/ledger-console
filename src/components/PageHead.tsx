@@ -16,7 +16,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import type { PeriodView } from '../types/pnl';
 import { useColors } from '../theme/theme';
 
-const PERIODS: PeriodView[] = ['MoM', 'QoQ', 'YTD'];
+const PERIODS: PeriodView[] = ['MoM', 'QoQ', 'YTD', 'YoY'];
 
 const PERIOD_META: Record<PeriodView, { title: string; body: string }> = {
   MoM: {
@@ -30,6 +30,10 @@ const PERIOD_META: Record<PeriodView, { title: string; body: string }> = {
   YTD: {
     title: 'Year-to-Date',
     body: 'Accumulates January through the current month and compares against the same range in the prior year. Useful for full-year trajectory.',
+  },
+  YoY: {
+    title: 'Year-over-Year',
+    body: 'Compares the current month against the same month from the previous year. Useful for seasonal performance analysis.',
   },
 };
 

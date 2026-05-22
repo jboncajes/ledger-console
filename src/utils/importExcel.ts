@@ -7,13 +7,13 @@ const MONTH_INDEX: Record<string, number> = {
 };
 
 const LABEL_TO_FIELD: Record<string, keyof PnlInputs> = {
-  'Operating Revenue':     'opRev',
+  'Total Operating Revenue':     'opRev',
   'Other Revenue':         'othRev',
-  'Power Purchased':       'power',
-  'Operating and Maintenance':           'om',
+  'Total Power Purchased':       'power',
+  'Total Operating and Maintenance Expenses':           'om',
   'Depreciation':          'deprec',
   'Interest Expense':      'interest',
-  'Non-Operating Revenue': 'nonOpRev',
+  'Non-Total Operating Revenue': 'nonOpRev',
   'Non-Operating Expense': 'nonOpExp',
   'RFSC':                  'rfsc',
 };

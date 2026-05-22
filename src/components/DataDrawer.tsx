@@ -336,15 +336,15 @@ export function DataDrawer({ open, onClose, months, updateMonthField, resetMonth
       <Box sx={{ flex: 1, overflowY: 'auto', p: '20px 28px' }}>
         <Box sx={{ mb: 3 }}>
           <SectionTitle>Revenue</SectionTitle>
-          <FieldRow label="Operating Revenue" field="opRev" inputs={selectedMonth.inputs} onUpdate={update} />
+          <FieldRow label="Total Operating Revenue" field="opRev" inputs={selectedMonth.inputs} onUpdate={update} />
           <FieldRow label="Other Revenue" field="othRev" inputs={selectedMonth.inputs} onUpdate={update} subtle />
           <ComputedRow label="Total Revenue" value={c.totalRev} />
         </Box>
 
         <Box sx={{ mb: 3 }}>
           <SectionTitle variant="less">Less: Operating Costs</SectionTitle>
-          <FieldRow label="Power Purchased" field="power" inputs={selectedMonth.inputs} onUpdate={update} />
-          <FieldRow label="Total Operating and Maintenance" field="om" inputs={selectedMonth.inputs} onUpdate={update} />
+          <FieldRow label="Total Power Purchased" field="power" inputs={selectedMonth.inputs} onUpdate={update} />
+          <FieldRow label="Total Total Operating and Maintenance Expenses" field="om" inputs={selectedMonth.inputs} onUpdate={update} />
           <ComputedRow label="Operating Margin" value={c.opMargin} />
         </Box>
 
@@ -357,7 +357,7 @@ export function DataDrawer({ open, onClose, months, updateMonthField, resetMonth
 
         <Box>
           <SectionTitle variant="add">Add: Adjustments</SectionTitle>
-          <FieldRow label="Non-Operating Revenue" field="nonOpRev" inputs={selectedMonth.inputs} onUpdate={update} />
+          <FieldRow label="Non-Total Operating Revenue" field="nonOpRev" inputs={selectedMonth.inputs} onUpdate={update} />
           <FieldRow label="Non-Operating Expense" field="nonOpExp" inputs={selectedMonth.inputs} onUpdate={update} subtle />
           <ComputedRow label="Net Margin" value={c.netMargin} variant="highlight" />
           <FieldRow label="RFSC" field="rfsc" inputs={selectedMonth.inputs} onUpdate={update} />

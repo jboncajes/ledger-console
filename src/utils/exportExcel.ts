@@ -14,16 +14,16 @@ interface LineItemDef {
 }
 
 const LINE_ITEMS: LineItemDef[] = [
-  { label: 'Operating Revenue',           get: (m) => m.inputs.opRev,                        computed: false },
+  { label: 'Total Operating Revenue',           get: (m) => m.inputs.opRev,                        computed: false },
   { label: 'Other Revenue',               get: (m) => m.inputs.othRev,                       computed: false },
   { label: 'Total Revenue',               get: (m) => computePeriod(m.inputs).totalRev,       computed: true  },
-  { label: 'Power Purchased',             get: (m) => m.inputs.power,                        computed: false },
-  { label: 'Operating and Maintenance',                 get: (m) => m.inputs.om,                           computed: false },
+  { label: 'Total Power Purchased',             get: (m) => m.inputs.power,                        computed: false },
+  { label: 'Total Operating and Maintenance Expenses',                 get: (m) => m.inputs.om,                           computed: false },
   { label: 'Operating Margin',            get: (m) => computePeriod(m.inputs).opMargin,       computed: true  },
   { label: 'Depreciation',                get: (m) => m.inputs.deprec,                       computed: false },
   { label: 'Interest Expense',            get: (m) => m.inputs.interest,                     computed: false },
   { label: 'Net Operating Margin',        get: (m) => computePeriod(m.inputs).netOpMargin,    computed: true  },
-  { label: 'Non-Operating Revenue',       get: (m) => m.inputs.nonOpRev,                     computed: false },
+  { label: 'Non-Total Operating Revenue',       get: (m) => m.inputs.nonOpRev,                     computed: false },
   { label: 'Non-Operating Expense',       get: (m) => m.inputs.nonOpExp,                     computed: false },
   { label: 'Net Margin',                  get: (m) => computePeriod(m.inputs).netMargin,      computed: true  },
   { label: 'RFSC',                        get: (m) => m.inputs.rfsc,                         computed: false },
