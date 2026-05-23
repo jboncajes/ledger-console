@@ -1,13 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import {
   Box,
   Button,
   ButtonGroup,
   Chip,
   IconButton,
-  ListItemIcon,
-  Menu,
-  MenuItem,
   Stack,
   Tooltip,
   Typography,
@@ -19,9 +16,6 @@ import {
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import FileUploadRoundedIcon from '@mui/icons-material/FileUploadRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
-import SimCardDownloadRoundedIcon from '@mui/icons-material/SimCardDownloadRounded';
-import IosShareRoundedIcon from '@mui/icons-material/IosShareRounded';
 import type { PeriodView } from '../types/pnl';
 import { useColors } from '../theme/theme';
 

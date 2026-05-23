@@ -138,7 +138,7 @@ function ActivityFeed({ data }: TripleGridProps) {
   const colors = useColors();
   const delta = data.current.totalMargin - data.prior.totalMargin;
   const revDelta = data.current.totalRev - data.prior.totalRev;
-  const omDelta = data.inputs.current.om - data.inputs.prior.om;
+  const omDelta = data.current.om - data.prior.om;
 
   const toneColor: Record<string, string> = {
     green: colors.accent2,
