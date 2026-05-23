@@ -15,7 +15,7 @@ Built with **Vite + React 18 + TypeScript + MUI v6**.
   - Sidebar nav items are clickable + keyboard-accessible.
   - Topbar inbox/notifications/settings buttons fire toasts.
   - Avatar opens a menu (Profile, Preferences, Sign out).
-  - Period segmented control (1W / 1M / MoM / QoQ / YTD) switches.
+  - Period segmented control (1W / 1M / MoM / QoQ / YTD / YoY) switches.
   - Waterfall bars show values on hover.
   - Bar rows highlight on hover.
   - Drawer accepts pasted values with commas; reformats on the fly.

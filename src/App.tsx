@@ -1,4 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import { setActiveEntity, setPeriod } from './store/uiSlice';
+import type { EntityTab } from './components/Sidebar';
 import {
   Box, Snackbar, Alert, Stack, Typography,
   ThemeProvider, CssBaseline,
@@ -12,21 +15,46 @@ import { KpiGrid } from './components/KpiGrid';
 import { Waterfall } from './components/Waterfall';
 import { MarginComposition } from './components/MarginComposition';
 import { TripleGrid } from './components/TripleGrid';
+import { RevenueVsPower } from './components/RevenueVsPower';
+import { OmBreakdown } from './components/OmBreakdown';
+import { RevPowerDonut } from './components/RevPowerDonut';
+import { OmDonut } from './components/OmDonut';
 import { DataDrawer } from './components/DataDrawer';
+import { DsmDataDrawer } from './components/DsmDataDrawer';
+import { DsmKpiGrid } from './components/DsmKpiGrid';
+import { DsmRevVsExp } from './components/DsmRevVsExp';
+import { DsmRevenueBreakdown, DsmExpenseBreakdown } from './components/DsmBreakdown';
+import { DsmTrend } from './components/DsmTrend';
+import { KpsKpiGrid } from './components/KpsKpiGrid';
+import { KpsTrend } from './components/KpsTrend';
+import { KpsScorecard } from './components/KpsScorecard';
+import { KpsDataDrawer } from './components/KpsDataDrawer';
+import { SlSummaryTable } from './components/SlSummaryTable';
+import { SlMfsrTrend } from './components/SlMfsrTrend';
+import { SlForgoneChart, SlSystemLossChart } from './components/SlPesoCharts';
+import { SlDataDrawer } from './components/SlDataDrawer';
+import { Sidebar } from './components/Sidebar';
 import { usePnlState } from './hooks/usePnlState';
+import { useDsmState } from './hooks/useDsmState';
+import { useKpsState } from './hooks/useKpsState';
+import { useSlState } from './hooks/useSlState';
 import { createAppTheme, useColors } from './theme/theme';
 import { PESO } from './utils/format';
 import { getStoredUser, logout } from './auth';
 import { exportToExcel, downloadTemplate } from './utils/exportExcel';
 import { importFromExcel } from './utils/importExcel';
+import { exportDsmToExcel, downloadDsmTemplate } from './utils/exportDsmExcel';
+import { importDsmFromExcel } from './utils/importDsmExcel';
+import { exportKpsToExcel, downloadKpsTemplate } from './utils/exportKpsExcel';
+import { importKpsFromExcel } from './utils/importKpsExcel';
+import { exportSlToExcel, downloadSlTemplate } from './utils/exportSlExcel';
+import { importSlFromExcel } from './utils/importSlExcel';
 import type { AuthUser } from './auth';
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const appTheme = useMemo(() => createAppTheme(darkMode ? 'dark' : 'light'), [darkMode]);
-
-  const handleLogin = (u: AuthUser) => setUser(u);
 
   return (
     <ThemeProvider theme={appTheme}>
@@ -39,7 +67,7 @@ export default function App() {
           onLogout={() => { logout(); setUser(null); }}
         />
       ) : (
-        <LoginPage onLogin={handleLogin} />
+        <LoginPage onLogin={(u) => setUser(u)} />
       )}
     </ThemeProvider>
   );
@@ -54,19 +82,10 @@ interface DashboardProps {
 
 function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
   const colors = useColors();
-  const {
-    months,
-    activePeriod,
-    setActivePeriod,
-    updateMonthField,
-    resetMonth,
-    importMonths,
-    displayData,
-    computed,
-  } = usePnlState();
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const dispatch = useAppDispatch();
+  const activeEntity = useAppSelector((s) => s.ui.activeEntity);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; msg: string; severity: 'success' | 'info' | 'warning' }>({
     open: false, msg: '', severity: 'success',
   });
@@ -75,93 +94,36 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
     setToast({ open: true, msg, severity });
   }, []);
 
-  const combined = useMemo(
-    () => ({ prior: computed.prior, current: computed.current, inputs: displayData }),
-    [computed, displayData],
-  );
-
-  const handleExport = useCallback(async () => {
-    await exportToExcel(months, `ledger-console-${new Date().getFullYear()}.xlsx`);
-    showToast('Exported P&L data to Excel');
-  }, [months, showToast]);
-
-  const handleDownloadTemplate = useCallback(async () => {
-    await downloadTemplate();
-    showToast('Template downloaded', 'info');
-  }, [showToast]);
-
-  const handleImport = useCallback(async (file: File) => {
-    try {
-      const imported = await importFromExcel(file);
-      if (imported.length === 0) { showToast('No valid month data found in file', 'warning'); return; }
-      importMonths(imported);
-      showToast(`Imported ${imported.length} month${imported.length > 1 ? 's' : ''} from Excel`);
-    } catch {
-      showToast('Failed to read file — check the format', 'warning');
-    }
-  }, [importMonths, showToast]);
-
   return (
-    <Box sx={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-      <Topbar
-        darkMode={darkMode}
-        onToggleDark={onToggleDark}
-        user={user}
-        onLogoutRequest={() => setLogoutOpen(true)}
+    <Box sx={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+      <Sidebar
+        activeEntity={activeEntity}
+        onEntityChange={(e) => { dispatch(setActiveEntity(e)); setMobileSidebarOpen(false); }}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
-      <Stack gap={3} sx={{ p: 4 }}>
-        <PageHead
-          currentLabel={displayData.currentLabel}
-          priorLabel={displayData.priorLabel}
-          activePeriod={activePeriod}
-          onPeriodChange={setActivePeriod}
-          onOpenDrawer={() => setDrawerOpen(true)}
-          onExport={handleExport}
-          onImport={handleImport}
-          onDownloadTemplate={handleDownloadTemplate}
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <Topbar
+          darkMode={darkMode}
+          onToggleDark={onToggleDark}
+          user={user}
+          onLogoutRequest={() => setLogoutOpen(true)}
+          onMenuClick={() => setMobileSidebarOpen(true)}
         />
 
-        <KpiGrid data={combined} />
+        {/* Re-mount view on tab switch so each entity gets fresh state */}
+        {activeEntity === 'dsm'
+          ? <DsmEntityView key={activeEntity} showToast={showToast} />
+          : activeEntity === 'kps'
+          ? <KpsEntityView key={activeEntity} showToast={showToast} />
+          : activeEntity === 'sl'
+          ? <SlEntityView key={activeEntity} showToast={showToast} />
+          : <EntityView key={activeEntity} namespace={activeEntity} showToast={showToast} />
+        }
+      </Box>
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 1fr',
-            gap: 2,
-            '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
-            '& > *': { minWidth: 0 },
-          }}
-        >
-          <Waterfall months={months} />
-          <MarginComposition data={combined} />
-        </Box>
-
-        <TripleGrid data={combined} />
-
-        <Typography
-          sx={{
-            textAlign: 'center',
-            fontSize: 11,
-            color: 'text.secondary',
-            py: 1,
-            fontStyle: 'italic',
-            fontFamily: '"Instrument Serif", serif',
-          }}
-        >
-          Values in {PESO} Philippine Peso · Ledger Console v0.0
-        </Typography>
-      </Stack>
-
-      <DataDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        months={months}
-        updateMonthField={updateMonthField}
-        resetMonth={resetMonth}
-      />
-
-      {/* Logout confirmation modal */}
+      {/* Logout dialog */}
       <Dialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -233,5 +195,415 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
         </Alert>
       </Snackbar>
     </Box>
+  );
+}
+
+interface DsmEntityViewProps {
+  showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+}
+
+function DsmEntityView({ showToast }: DsmEntityViewProps) {
+  const dispatch = useAppDispatch();
+  const activePeriod = useAppSelector((s) => s.ui.periods['dsm'] ?? 'MoM');
+  const setActivePeriod = useCallback(
+    (p: import('./types/pnl').PeriodView) => dispatch(setPeriod({ tab: 'dsm', period: p })),
+    [dispatch],
+  );
+  const {
+    months,
+    updateMonthField,
+    resetMonth,
+    importMonths,
+    displayData,
+    computed,
+  } = useDsmState('dsm', activePeriod);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const combined = useMemo(
+    () => ({ prior: computed.prior, current: computed.current, inputs: displayData }),
+    [computed, displayData],
+  );
+
+  const handleExport = useCallback(async () => {
+    await exportDsmToExcel(months, `ledger-console-dsm-${new Date().getFullYear()}.xlsx`);
+    showToast('Exported DSM data to Excel');
+  }, [months, showToast]);
+
+  const handleDownloadTemplate = useCallback(async () => {
+    await downloadDsmTemplate();
+    showToast('DSM template downloaded', 'info');
+  }, [showToast]);
+
+  const handleImport = useCallback(async (file: File) => {
+    try {
+      const imported = await importDsmFromExcel(file);
+      if (imported.length === 0) { showToast('No valid month data found in file', 'warning'); return; }
+      importMonths(imported);
+      showToast(`Imported ${imported.length} month${imported.length > 1 ? 's' : ''} from Excel`);
+    } catch {
+      showToast('Failed to read file — check the format', 'warning');
+    }
+  }, [importMonths, showToast]);
+
+  return (
+    <>
+      <Stack gap={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, flex: 1 }}>
+        <PageHead
+          currentLabel={displayData.currentLabel}
+          priorLabel={displayData.priorLabel}
+          activePeriod={activePeriod}
+          onPeriodChange={setActivePeriod}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onExport={handleExport}
+          onImport={handleImport}
+          onDownloadTemplate={handleDownloadTemplate}
+        />
+
+        <DsmKpiGrid data={combined} />
+
+        <DsmTrend months={months} />
+
+        <DsmRevVsExp data={combined} />
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 2,
+            '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
+            '& > *': { minWidth: 0 },
+          }}
+        >
+          <DsmRevenueBreakdown data={combined} />
+          <DsmExpenseBreakdown data={combined} />
+        </Box>
+
+        <Typography
+          sx={{
+            textAlign: 'center',
+            fontSize: 11,
+            color: 'text.secondary',
+            py: 1,
+            fontStyle: 'italic',
+            fontFamily: '"Instrument Serif", serif',
+          }}
+        >
+          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+        </Typography>
+      </Stack>
+
+      <DsmDataDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        months={months}
+        updateMonthField={updateMonthField}
+        resetMonth={resetMonth}
+      />
+    </>
+  );
+}
+
+interface KpsEntityViewProps {
+  showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+}
+
+function KpsEntityView({ showToast }: KpsEntityViewProps) {
+  const { months, selectedId, setSelectedId, selectedMonth, scores, updateMonthField, resetMonth, importMonths } = useKpsState('kps');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    await exportKpsToExcel(months, `ledger-console-kps-${new Date().getFullYear()}.xlsx`);
+    showToast('Exported KPS data to Excel');
+  }, [months, showToast]);
+
+  const handleDownloadTemplate = useCallback(async () => {
+    await downloadKpsTemplate();
+    showToast('KPS template downloaded', 'info');
+  }, [showToast]);
+
+
+  const handleImport = useCallback(async (file: File) => {
+    try {
+      const imported = await importKpsFromExcel(file);
+      if (imported.length === 0) { showToast('No valid month data found in file', 'warning'); return; }
+      importMonths(imported);
+      showToast(`Imported ${imported.length} month${imported.length > 1 ? 's' : ''} from Excel`);
+    } catch {
+      showToast('Failed to read file — check the format', 'warning');
+    }
+  }, [importMonths, showToast]);
+
+  if (!selectedMonth || !scores) return null;
+
+  return (
+    <>
+      <Stack gap={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, flex: 1 }}>
+        <PageHead
+          currentLabel={selectedMonth.label}
+          activePeriod="MoM"
+          onPeriodChange={() => {}}
+          hidePeriodSelector
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onExport={handleExport}
+          onImport={handleImport}
+          onDownloadTemplate={handleDownloadTemplate}
+        />
+
+        <KpsKpiGrid scores={scores} month={selectedMonth} />
+        <KpsTrend months={months} />
+        <KpsScorecard
+          months={months}
+          selectedId={selectedId}
+          onSelectMonth={setSelectedId}
+          scores={scores}
+          inputs={selectedMonth.inputs}
+        />
+
+        <Typography sx={{ textAlign: 'center', fontSize: 11, color: 'text.secondary', py: 1, fontStyle: 'italic', fontFamily: '"Instrument Serif", serif' }}>
+          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+        </Typography>
+      </Stack>
+
+      <KpsDataDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        months={months}
+        selectedId={selectedId}
+        onSelectMonth={setSelectedId}
+        updateMonthField={updateMonthField}
+        resetMonth={resetMonth}
+      />
+    </>
+  );
+}
+
+interface SlEntityViewProps {
+  showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+}
+
+function SlEntityView({ showToast }: SlEntityViewProps) {
+  const { months, updateMonthField, resetMonth, importMonths } = useSlState('sl');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const availableYears = useMemo(
+    () => [...new Set(months.map((m) => m.year))].sort(),
+    [months],
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(() => {
+    const loaded = months;
+    const cur = new Date().getFullYear();
+    const years = [...new Set(loaded.map((m) => m.year))].sort();
+    return years.includes(cur) ? cur : (years[years.length - 1] ?? cur);
+  });
+
+  const yearMonths = useMemo(
+    () => months.filter((m) => m.year === selectedYear).sort((a, b) => a.month - b.month),
+    [months, selectedYear],
+  );
+
+  const handleExport = useCallback(async () => {
+    await exportSlToExcel(months, `ledger-console-sl-${new Date().getFullYear()}.xlsx`);
+    showToast('Exported SL data to Excel');
+  }, [months, showToast]);
+
+  const handleDownloadTemplate = useCallback(async () => {
+    await downloadSlTemplate();
+    showToast('SL template downloaded', 'info');
+  }, [showToast]);
+
+  const handleImport = useCallback(async (file: File) => {
+    try {
+      const imported = await importSlFromExcel(file);
+      if (imported.length === 0) { showToast('No valid month data found in file', 'warning'); return; }
+      importMonths(imported);
+      showToast(`Imported ${imported.length} month${imported.length > 1 ? 's' : ''} from Excel`);
+    } catch {
+      showToast('Failed to read file — check the format', 'warning');
+    }
+  }, [importMonths, showToast]);
+
+  return (
+    <>
+      <Stack gap={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, flex: 1 }}>
+        <PageHead
+          currentLabel={String(selectedYear)}
+          activePeriod="MoM"
+          onPeriodChange={() => {}}
+          hidePeriodSelector
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onExport={handleExport}
+          onImport={handleImport}
+          onDownloadTemplate={handleDownloadTemplate}
+        />
+
+        <SlSummaryTable
+          months={yearMonths}
+          selectedYear={selectedYear}
+          availableYears={availableYears}
+          onYearChange={setSelectedYear}
+        />
+
+        <SlMfsrTrend months={months} />
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 2,
+            '@media (max-width: 1100px)': { gridTemplateColumns: '1fr' },
+            '& > *': { minWidth: 0 },
+          }}
+        >
+          <SlForgoneChart months={yearMonths} year={selectedYear} />
+          <SlSystemLossChart months={yearMonths} year={selectedYear} />
+        </Box>
+
+        <Typography sx={{ textAlign: 'center', fontSize: 11, color: 'text.secondary', py: 1, fontStyle: 'italic', fontFamily: '"Instrument Serif", serif' }}>
+          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+        </Typography>
+      </Stack>
+
+      <SlDataDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        months={months}
+        updateMonthField={updateMonthField}
+        resetMonth={resetMonth}
+      />
+    </>
+  );
+}
+
+interface EntityViewProps {
+  namespace: EntityTab;
+  showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+}
+
+function EntityView({ namespace, showToast }: EntityViewProps) {
+  const dispatch = useAppDispatch();
+  const activePeriod = useAppSelector((s) => s.ui.periods[namespace] ?? 'MoM');
+  const setActivePeriod = useCallback(
+    (p: import('./types/pnl').PeriodView) => dispatch(setPeriod({ tab: namespace, period: p })),
+    [dispatch, namespace],
+  );
+  const {
+    months,
+    updateMonthField,
+    resetMonth,
+    importMonths,
+    displayData,
+    computed,
+  } = usePnlState(namespace, activePeriod);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const combined = useMemo(
+    () => ({ prior: computed.prior, current: computed.current, inputs: displayData }),
+    [computed, displayData],
+  );
+
+  const handleExport = useCallback(async () => {
+    await exportToExcel(months, `ledger-console-${namespace}-${new Date().getFullYear()}.xlsx`);
+    showToast('Exported P&L data to Excel');
+  }, [months, namespace, showToast]);
+
+  const handleDownloadTemplate = useCallback(async () => {
+    await downloadTemplate();
+    showToast('Template downloaded', 'info');
+  }, [showToast]);
+
+  const handleImport = useCallback(async (file: File) => {
+    try {
+      const imported = await importFromExcel(file);
+      if (imported.length === 0) { showToast('No valid month data found in file', 'warning'); return; }
+      importMonths(imported);
+      showToast(`Imported ${imported.length} month${imported.length > 1 ? 's' : ''} from Excel`);
+    } catch {
+      showToast('Failed to read file — check the format', 'warning');
+    }
+  }, [importMonths, showToast]);
+
+  return (
+    <>
+      <Stack gap={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, flex: 1 }}>
+        <PageHead
+          currentLabel={displayData.currentLabel}
+          priorLabel={displayData.priorLabel}
+          activePeriod={activePeriod}
+          onPeriodChange={setActivePeriod}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onExport={handleExport}
+          onImport={handleImport}
+          onDownloadTemplate={handleDownloadTemplate}
+        />
+
+        <KpiGrid data={combined} />
+
+        {/* O&M group */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 2,
+            '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
+            '& > *': { minWidth: 0 },
+          }}
+        >
+          <OmBreakdown data={combined} />
+          <OmDonut data={combined} />
+        </Box>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 1fr',
+            gap: 2,
+            '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
+            '& > *': { minWidth: 0 },
+          }}
+        >
+          <Waterfall months={months} />
+          <MarginComposition data={combined} />
+        </Box>
+
+        <TripleGrid data={combined} />
+
+        {/* Revenue vs Power group */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 2,
+            '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
+            '& > *': { minWidth: 0 },
+          }}
+        >
+          <RevenueVsPower data={combined} />
+          <RevPowerDonut data={combined} />
+        </Box>
+
+        <Typography
+          sx={{
+            textAlign: 'center',
+            fontSize: 11,
+            color: 'text.secondary',
+            py: 1,
+            fontStyle: 'italic',
+            fontFamily: '"Instrument Serif", serif',
+          }}
+        >
+          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+        </Typography>
+      </Stack>
+
+      <DataDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        months={months}
+        updateMonthField={updateMonthField}
+        resetMonth={resetMonth}
+      />
+    </>
   );
 }

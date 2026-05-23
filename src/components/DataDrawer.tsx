@@ -344,7 +344,11 @@ export function DataDrawer({ open, onClose, months, updateMonthField, resetMonth
         <Box sx={{ mb: 3 }}>
           <SectionTitle variant="less">Less: Operating Costs</SectionTitle>
           <FieldRow label="Total Power Purchased" field="power" inputs={selectedMonth.inputs} onUpdate={update} />
-          <FieldRow label="Total Operating and Maintenance Expenses" field="om" inputs={selectedMonth.inputs} onUpdate={update} />
+          <FieldRow label="Distribution Expenses" field="distrib" inputs={selectedMonth.inputs} onUpdate={update} subtle />
+          <FieldRow label="Supply Expenses" field="supply" inputs={selectedMonth.inputs} onUpdate={update} subtle />
+          <FieldRow label="Metering Expenses" field="meter" inputs={selectedMonth.inputs} onUpdate={update} subtle />
+          <FieldRow label="Administrative and General Expenses" field="adg" inputs={selectedMonth.inputs} onUpdate={update} subtle />
+          <ComputedRow label="Total Operating and Maintenance Expense" value={c.om} />
           <ComputedRow label="Operating Margin" value={c.opMargin} />
         </Box>
 

@@ -2,27 +2,31 @@ import type { ComputedPnl, MonthRecord, PeriodView, PnlInputs, PnlPeriod } from 
 
 export function computePeriod(p: PnlInputs): ComputedPnl {
   const totalRev = p.opRev + p.othRev;
-  const opMargin = totalRev - p.power - p.om;
+  const om = p.distrib + p.supply + p.meter + p.adg;
+  const opMargin = totalRev - p.power - om;
   const netOpMargin = opMargin - p.deprec - p.interest;
   const netMargin = netOpMargin + p.nonOpRev - p.nonOpExp;
   const totalMargin = netMargin + p.rfsc;
-  return { totalRev, opMargin, netOpMargin, netMargin, totalMargin };
+  return { om, totalRev, opMargin, netOpMargin, netMargin, totalMargin };
 }
 
 export function sumInputs(list: PnlInputs[]): PnlInputs {
   return list.reduce(
     (acc, m) => ({
-      opRev: acc.opRev + m.opRev,
-      othRev: acc.othRev + m.othRev,
-      power: acc.power + m.power,
-      om: acc.om + m.om,
-      deprec: acc.deprec + m.deprec,
+      opRev:    acc.opRev    + m.opRev,
+      othRev:   acc.othRev   + m.othRev,
+      power:    acc.power    + m.power,
+      distrib:  acc.distrib  + m.distrib,
+      supply:   acc.supply   + m.supply,
+      meter:    acc.meter    + m.meter,
+      adg:      acc.adg      + m.adg,
+      deprec:   acc.deprec   + m.deprec,
       interest: acc.interest + m.interest,
       nonOpRev: acc.nonOpRev + m.nonOpRev,
       nonOpExp: acc.nonOpExp + m.nonOpExp,
-      rfsc: acc.rfsc + m.rfsc,
+      rfsc:     acc.rfsc     + m.rfsc,
     }),
-    { opRev: 0, othRev: 0, power: 0, om: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0 },
+    { opRev: 0, othRev: 0, power: 0, distrib: 0, supply: 0, meter: 0, adg: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0 },
   );
 }
 
@@ -30,7 +34,7 @@ const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
 const LONG  = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const EMPTY_INPUTS: PnlInputs = {
-  opRev: 0, othRev: 0, power: 0, om: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0,
+  opRev: 0, othRev: 0, power: 0, distrib: 0, supply: 0, meter: 0, adg: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0,
 };
 
 export function getPeriodSlices(months: MonthRecord[], period: PeriodView): PnlPeriod {
@@ -99,7 +103,7 @@ export function getPeriodSlices(months: MonthRecord[], period: PeriodView): PnlP
 }
 
 const SEED_START = { year: 2025, month: 1 };
-const ZERO_INPUTS: PnlInputs = { opRev: 0, othRev: 0, power: 0, om: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0 };
+const ZERO_INPUTS: PnlInputs = { opRev: 0, othRev: 0, power: 0, distrib: 0, supply: 0, meter: 0, adg: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0 };
 
 function generateMonthsSeed(): MonthRecord[] {
   const now = new Date();

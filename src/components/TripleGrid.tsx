@@ -1,5 +1,4 @@
 import { Box, IconButton, Stack, Typography, alpha } from '@mui/material';
-import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import BuildRoundedIcon from '@mui/icons-material/BuildRounded';
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
@@ -19,12 +18,11 @@ export function TripleGrid({ data }: TripleGridProps) {
     <Box
       sx={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: 'repeat(2, 1fr)',
         gap: 2,
         '@media (max-width: 1200px)': { gridTemplateColumns: '1fr' },
       }}
     >
-      <RevenueMix data={data} />
       <CostBreakdown data={data} />
       <ActivityFeed data={data} />
     </Box>
@@ -77,70 +75,13 @@ function CardShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RevenueMix({ data }: TripleGridProps) {
-  const colors = useColors();
-  const c = data.inputs.current;
-  const total = c.opRev + c.othRev;
-  const opShare = total > 0 ? (c.opRev / total) * 100 : 0;
-  const othShare = total > 0 ? (c.othRev / total) * 100 : 0;
-
-  return (
-    <CardShell>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-        <Box>
-          <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 18 }}>Revenue mix</Typography>
-          <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.4 }}>Operating + other</Typography>
-        </Box>
-        <Box
-          sx={{
-            background: alpha(colors.accent2, 0.12),
-            color: colors.accent2,
-            px: 1, py: 0.4, borderRadius: 99,
-            fontSize: 11, fontWeight: 600,
-            display: 'inline-flex', alignItems: 'center', gap: 0.3,
-          }}
-        >
-          <TrendingUpRoundedIcon sx={{ fontSize: 14 }} />
-        </Box>
-      </Stack>
-
-      <Box sx={{ display: 'flex', height: 22, mt: 3, borderRadius: 99, overflow: 'hidden' }}>
-        <Box sx={{ width: `${opShare}%`, background: `linear-gradient(90deg, ${colors.accent}, ${colors.accent2})`, transition: 'width 0.6s ease' }} />
-        <Box sx={{ width: `${othShare}%`, background: alpha(colors.accent3, 0.7), transition: 'width 0.6s ease' }} />
-      </Box>
-
-      <Stack direction="row" justifyContent="space-between" sx={{ mt: 1.5, fontSize: 12 }}>
-        <Stack>
-          <Stack direction="row" alignItems="center" gap={0.75}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '2px', background: colors.accent }} />
-            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>Operating</Typography>
-          </Stack>
-          <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 13, mt: 0.5 }}>
-            {PESO}{fmtMillions(c.opRev)}M
-          </Typography>
-          <Typography sx={{ fontSize: 11, color: colors.inkSoft }}>{opShare.toFixed(1)}%</Typography>
-        </Stack>
-        <Stack alignItems="flex-end">
-          <Stack direction="row" alignItems="center" gap={0.75}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '2px', background: colors.accent3 }} />
-            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>Other</Typography>
-          </Stack>
-          <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 13, mt: 0.5 }}>
-            {PESO}{fmtMillions(c.othRev)}M
-          </Typography>
-          <Typography sx={{ fontSize: 11, color: colors.inkSoft }}>{othShare.toFixed(1)}%</Typography>
-        </Stack>
-      </Stack>
-    </CardShell>
-  );
-}
-
 function CostBreakdown({ data }: TripleGridProps) {
   const colors = useColors();
   const c = data.inputs.current;
+  const om = data.current.om;
   const items = [
     { label: 'Total Power Purchased', value: c.power, icon: <BoltRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.accent },
-    { label: 'Total Operating and Maintenance Expenses', value: c.om, icon: <BuildRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.accent3 },
+    { label: 'Total Operating and Maintenance Expenses', value: om, icon: <BuildRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.accent3 },
     { label: 'Depreciation', value: c.deprec, icon: <AccountBalanceRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.danger },
     { label: 'Interest', value: c.interest, icon: <AccountBalanceRoundedIcon sx={{ fontSize: 14 }} />, tone: colors.inkSoft },
   ];

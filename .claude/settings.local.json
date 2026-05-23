@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Test\\\\ledger-console\\\\ledger-console\" -Recurse -Depth 2)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(head -100)",
+      "PowerShell(ls -R \"c:\\\\Test\\\\ledger-console\\\\ledger-console\")",
+      "Bash(node scripts/generate-sample.mjs)",
+      "Bash(node generate-dsm-sample.mjs)",
+      "Bash(Remove-Item generate-dsm-sample.mjs)",
+      "Read(//c/Users/JBONCAJES/.claude/projects/c--Test-ledger-console-ledger-console/memory/**)",
+      "Bash(node -e \"require\\('exceljs'\\)\")",
+      "Bash(node gen-kps-sample.cjs)",
+      "Bash(del \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\gen-kps-sample.cjs\")",
+      "Bash(node gen-sl-sample.cjs)",
+      "Bash(del \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\gen-sl-sample.cjs\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\JBONCAJES\\.claude\\projects\\c--Test-ledger-console-ledger-console\\memory"
+    ]
+  }
+}

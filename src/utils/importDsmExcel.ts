@@ -1,33 +1,28 @@
 import ExcelJS from 'exceljs';
-import type { MonthRecord, PnlInputs } from '../types/pnl';
+import type { DsmInputs, DsmMonthRecord } from '../types/pnl';
 
 const MONTH_INDEX: Record<string, number> = {
   january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
   july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
 };
 
-const LABEL_TO_FIELD: Record<string, keyof PnlInputs> = {
-  'Operating Revenue':                         'opRev',
-  'Total Operating Revenue':                   'opRev',
-  'Other Revenue':                             'othRev',
-  'Total Power Purchased':                     'power',
-  'Distribution Expenses':                     'distrib',
-  'Supply Expenses':                           'supply',
-  'Metering Expenses':                         'meter',
-  'Administrative And General Expenses':       'adg',
-  'Depreciation':                              'deprec',
-  'Interest Expense':                          'interest',
-  'Non-Operating Revenue':                     'nonOpRev',
-  'Non-Total Operating Revenue':               'nonOpRev',
-  'Non-Operating Expense':                     'nonOpExp',
-  'RFSC':                                      'rfsc',
+const LABEL_TO_FIELD: Record<string, keyof DsmInputs> = {
+  'Distribution Revenue':                  'distribRev',
+  'Supply Revenue':                        'supplyRev',
+  'Metering Revenue':                      'meterRev',
+  'Other Operating Revenue':               'otherOpRev',
+  'Other Non-Operating Revenue':           'otherNonOpRev',
+  'Distribution Expenses':                 'distribExp',
+  'Supply Expenses':                       'supplyExp',
+  'Metering Expenses':                     'meterExp',
+  'Administrative and General Expenses':   'adgExp',
 };
 
 function parseMonthLabel(raw: string): { id: string; year: number; month: number; label: string } | null {
   const parts = raw.trim().split(/\s+/);
   if (parts.length !== 2) return null;
   const month = MONTH_INDEX[parts[0].toLowerCase()];
-  const year = parseInt(parts[1], 10);
+  const year  = parseInt(parts[1], 10);
   if (!month || isNaN(year)) return null;
   return { id: `${year}-${String(month).padStart(2, '0')}`, year, month, label: raw.trim() };
 }
@@ -45,15 +40,14 @@ function cellNum(value: ExcelJS.CellValue): number {
   return 0;
 }
 
-export async function importFromExcel(file: File): Promise<MonthRecord[]> {
+export async function importDsmFromExcel(file: File): Promise<DsmMonthRecord[]> {
   const buffer = await file.arrayBuffer();
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
 
-  const results: MonthRecord[] = [];
+  const results: DsmMonthRecord[] = [];
 
   wb.worksheets.forEach((ws) => {
-    // Row 1: headers — col A = "Line Item", B+ = month labels
     const headerRow = ws.getRow(1);
     const cols: Array<{ col: number } & ReturnType<typeof parseMonthLabel> & { label: string }> = [];
 
@@ -62,11 +56,9 @@ export async function importFromExcel(file: File): Promise<MonthRecord[]> {
       const parsed = parseMonthLabel(String(cell.value ?? ''));
       if (parsed) cols.push({ col: colNum, ...parsed });
     });
-
     if (cols.length === 0) return;
 
-    // Accumulate inputs per month
-    const acc: Record<string, Partial<PnlInputs>> = {};
+    const acc: Record<string, Partial<DsmInputs>> = {};
     for (const c of cols) acc[c.id] = {};
 
     ws.eachRow((row, rowNum) => {
@@ -74,31 +66,23 @@ export async function importFromExcel(file: File): Promise<MonthRecord[]> {
       const lineLabel = String(row.getCell(1).value ?? '').trim();
       const field = LABEL_TO_FIELD[lineLabel];
       if (!field) return;
-      for (const c of cols) {
-        acc[c.id][field] = cellNum(row.getCell(c.col).value);
-      }
+      for (const c of cols) acc[c.id][field] = cellNum(row.getCell(c.col).value);
     });
 
     for (const c of cols) {
       const inp = acc[c.id];
       results.push({
-        id: c.id,
-        label: c.label,
-        year: c.year,
-        month: c.month,
+        id: c.id, label: c.label, year: c.year, month: c.month,
         inputs: {
-          opRev:    inp.opRev    ?? 0,
-          othRev:   inp.othRev   ?? 0,
-          power:    inp.power    ?? 0,
-          distrib:  inp.distrib  ?? 0,
-          supply:   inp.supply   ?? 0,
-          meter:    inp.meter    ?? 0,
-          adg:      inp.adg      ?? 0,
-          deprec:   inp.deprec   ?? 0,
-          interest: inp.interest ?? 0,
-          nonOpRev: inp.nonOpRev ?? 0,
-          nonOpExp: inp.nonOpExp ?? 0,
-          rfsc:     inp.rfsc     ?? 0,
+          distribRev:    inp.distribRev    ?? 0,
+          supplyRev:     inp.supplyRev     ?? 0,
+          meterRev:      inp.meterRev      ?? 0,
+          otherOpRev:    inp.otherOpRev    ?? 0,
+          otherNonOpRev: inp.otherNonOpRev ?? 0,
+          distribExp:    inp.distribExp    ?? 0,
+          supplyExp:     inp.supplyExp     ?? 0,
+          meterExp:      inp.meterExp      ?? 0,
+          adgExp:        inp.adgExp        ?? 0,
         },
       });
     }

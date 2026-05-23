@@ -211,11 +211,11 @@ function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior'
       <rect x="22" y={BASE - priorH} width="96" height={priorH} rx="7"
         fill={`url(#${pgId})`} />
       <text x="70" y={BASE - priorH - 7} textAnchor="middle"
-        fontFamily="JetBrains Mono, monospace" fontSize="11" fill={priorColor} opacity="0.85">
+        fontFamily="JetBrains Mono, monospace" fontSize="14" fill={priorColor} opacity="0.85">
         {fmtMillions(prior)}M
       </text>
       <text x="70" y="114" textAnchor="middle"
-        fontFamily="Inter, sans-serif" fontSize="10.5" fill={priorColor} opacity="0.7">
+        fontFamily="Inter, sans-serif" fontSize="13" fill={priorColor} opacity="0.7">
         {priorLabel}
       </text>
 
@@ -223,11 +223,11 @@ function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior'
       <rect x="142" y={BASE - currH} width="96" height={currH} rx="7"
         fill={`url(#${cgId})`} />
       <text x="190" y={BASE - currH - 7} textAnchor="middle"
-        fontFamily="JetBrains Mono, monospace" fontSize="11" fill={currColor}>
+        fontFamily="JetBrains Mono, monospace" fontSize="14" fill={currColor}>
         {fmtMillions(curr)}M
       </text>
       <text x="190" y="114" textAnchor="middle"
-        fontFamily="Inter, sans-serif" fontSize="10.5" fill={currColor} opacity="0.85">
+        fontFamily="Inter, sans-serif" fontSize="13" fill={currColor} opacity="0.85">
         {currLabel}
       </text>
 
@@ -266,12 +266,12 @@ function AreaChart({ id, prior, curr, color }: { id: string; prior: number; curr
       <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
       {/* Prior point */}
       <circle cx="0" cy={priorY} r="4.5" fill={color} opacity="0.5" />
-      <text x="14" y={priorY - 7} fontFamily="JetBrains Mono, monospace" fontSize="11" fill={color} opacity="0.75">
+      <text x="14" y={priorY - 7} fontFamily="JetBrains Mono, monospace" fontSize="14" fill={color} opacity="0.75">
         {fmtMillions(prior)}M
       </text>
       {/* Current point */}
       <circle cx="260" cy={currY} r="5.5" fill={color} />
-      <text x="246" y={currY - 9} textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="11" fill={color}>
+      <text x="246" y={currY - 9} textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="14" fill={color}>
         {fmtMillions(curr)}M
       </text>
       {/* Zero line */}
@@ -304,11 +304,11 @@ export function KpiGrid({ data }: KpiGridProps) {
         'Lower power costs are supporting margin expansion.'
       }`;
 
-  const omDesc = (ci.om === 0 && pi.om === 0)
+  const omDesc = (current.om === 0 && prior.om === 0)
     ? 'No data recorded for this period.'
-    : `${PESO}${fmtMillions(ci.om)}M this period — ${chg(ci.om, pi.om)}. ${
-        ci.om === pi.om ? 'Costs are flat vs prior period.' :
-        ci.om > pi.om ? 'Costs rose vs prior — review labor and contracted services for overruns.' :
+    : `${PESO}${fmtMillions(current.om)}M this period — ${chg(current.om, prior.om)}. ${
+        current.om === prior.om ? 'Costs are flat vs prior period.' :
+        current.om > prior.om ? 'Costs rose vs prior — review labor and contracted services for overruns.' :
         'Costs held below prior period.'
       }`;
 
@@ -346,11 +346,11 @@ export function KpiGrid({ data }: KpiGridProps) {
 
       <KpiCard
         label="Total Operating and Maintenance Expenses"
-        curr={ci.om} prior={pi.om}
+        curr={current.om} prior={prior.om}
         inverseGood
         description={omDesc}
-        chart={<BarChart id="om" prior={pi.om} curr={ci.om} priorColor={colors.accent3} currColor={colors.accent3} />}
-        meterPct={(ci.om / 50_000_000) * 100}
+        chart={<BarChart id="om" prior={prior.om} curr={current.om} priorColor={colors.accent3} currColor={colors.accent3} />}
+        meterPct={(current.om / 50_000_000) * 100}
         meterColor="warning"
         delay={0.15}
       />

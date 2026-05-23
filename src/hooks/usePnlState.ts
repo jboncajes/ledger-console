@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+// activePeriod is now passed in as a parameter — managed by Redux in App.tsx
 import type { MonthRecord, PeriodView, PnlInputs } from '../types/pnl';
 import { MONTHS_SEED, computePeriod, getPeriodSlices } from '../utils/pnl';
 
-const STORAGE_KEY = 'ledger-console:months:v2';
-
 function cutoffMonthId(): string {
   const now = new Date();
-  // Keep only months strictly before the previous month (i.e. 2+ months ago)
-  const m = now.getMonth(); // 0-indexed current = 1-indexed previous month
+  const m = now.getMonth();
   if (m === 0) return `${now.getFullYear() - 1}-12`;
   return `${now.getFullYear()}-${String(m).padStart(2, '0')}`;
 }
@@ -17,10 +15,10 @@ function stripRecentMonths(months: MonthRecord[]): MonthRecord[] {
   return months.filter((m) => m.id < cutoff);
 }
 
-function loadFromStorage(): MonthRecord[] {
+function loadFromStorage(storageKey: string): MonthRecord[] {
   if (typeof window === 'undefined') return MONTHS_SEED;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey);
     if (!raw) return MONTHS_SEED;
     const parsed = JSON.parse(raw) as MonthRecord[];
     if (!Array.isArray(parsed) || parsed.length === 0) return MONTHS_SEED;
@@ -30,17 +28,17 @@ function loadFromStorage(): MonthRecord[] {
   }
 }
 
-export function usePnlState() {
-  const [months, setMonths] = useState<MonthRecord[]>(() => loadFromStorage());
-  const [activePeriod, setActivePeriod] = useState<PeriodView>('MoM');
+export function usePnlState(namespace: string = 'soo', activePeriod: PeriodView = 'MoM') {
+  const storageKey = `ledger-console:months:v2:${namespace}`;
+  const [months, setMonths] = useState<MonthRecord[]>(() => loadFromStorage(storageKey));
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(months));
+      window.localStorage.setItem(storageKey, JSON.stringify(months));
     } catch {
       // ignore quota errors
     }
-  }, [months]);
+  }, [months, storageKey]);
 
   const displayData = useMemo(
     () => getPeriodSlices(months, activePeriod),
@@ -87,16 +85,15 @@ export function usePnlState() {
   const resetAll = useCallback(() => {
     setMonths(MONTHS_SEED);
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(storageKey);
     } catch {
       // ignore
     }
-  }, []);
+  }, [storageKey]);
 
   return {
     months,
     activePeriod,
-    setActivePeriod,
     updateMonthField,
     resetMonth,
     resetAll,

@@ -1,18 +1,27 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   Box,
   Button,
   ButtonGroup,
   Chip,
+  IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
   Stack,
   Tooltip,
   Typography,
   alpha,
   keyframes,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import FileUploadRoundedIcon from '@mui/icons-material/FileUploadRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
+import SimCardDownloadRoundedIcon from '@mui/icons-material/SimCardDownloadRounded';
+import IosShareRoundedIcon from '@mui/icons-material/IosShareRounded';
 import type { PeriodView } from '../types/pnl';
 import { useColors } from '../theme/theme';
 
@@ -39,9 +48,10 @@ const PERIOD_META: Record<PeriodView, { title: string; body: string }> = {
 
 interface PageHeadProps {
   currentLabel: string;
-  priorLabel: string;
+  priorLabel?: string;
   activePeriod: PeriodView;
   onPeriodChange: (p: PeriodView) => void;
+  hidePeriodSelector?: boolean;
   onOpenDrawer: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
@@ -58,12 +68,15 @@ export function PageHead({
   priorLabel,
   activePeriod,
   onPeriodChange,
+  hidePeriodSelector = false,
   onOpenDrawer,
   onExport,
   onImport,
   onDownloadTemplate,
 }: PageHeadProps) {
   const colors = useColors();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,6 +100,16 @@ export function PageHead({
     },
   } as const;
 
+  const iconOnlySx = {
+    width: 36,
+    height: 36,
+    background: colors.panel,
+    border: `1px solid ${colors.border}`,
+    borderRadius: '10px',
+    color: 'text.primary',
+    '&:hover': { background: colors.panelStrong, borderColor: colors.borderStrong },
+  } as const;
+
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
@@ -96,15 +119,19 @@ export function PageHead({
 
   return (
     <Stack
-      direction="row"
-      alignItems="flex-end"
+      direction={{ xs: 'column', sm: 'row' }}
+      alignItems={{ xs: 'flex-start', sm: 'flex-end' }}
       justifyContent="space-between"
-      gap={3}
+      gap={{ xs: 2, sm: 3 }}
       flexWrap="wrap"
     >
       <Box>
         <Stack direction="row" alignItems="center" gap={1.5} flexWrap="wrap">
-          <Typography component="h1" variant="h1" sx={{ fontSize: '2.4rem', lineHeight: 1.1 }}>
+          <Typography
+            component="h1"
+            variant="h1"
+            sx={{ fontSize: { xs: '1.7rem', sm: '2.4rem' }, lineHeight: 1.1 }}
+          >
             {greeting}, Zaii!
           </Typography>
           <Chip
@@ -133,17 +160,21 @@ export function PageHead({
             }}
           />
         </Stack>
-        <Typography sx={{ color: 'text.secondary', fontSize: 13, mt: 0.75 }}>
-          Comparing{' '}
-          <Box component="strong" sx={{ color: 'text.primary' }}>
-            {currentLabel}
-          </Box>{' '}
-          vs{' '}
-          <Box component="strong" sx={{ color: 'text.primary' }}>
-            {priorLabel}
-          </Box>{' '}
-          · Source: Manual entry
-        </Typography>
+        {!hidePeriodSelector && priorLabel && (
+          <Typography sx={{ color: 'text.secondary', fontSize: { xs: 12, sm: 13 }, mt: 0.75 }}>
+            Comparing{' '}
+            <Box component="strong" sx={{ color: 'text.primary' }}>{currentLabel}</Box>{' '}
+            vs{' '}
+            <Box component="strong" sx={{ color: 'text.primary' }}>{priorLabel}</Box>{' '}
+            · Source: Manual entry
+          </Typography>
+        )}
+        {hidePeriodSelector && (
+          <Typography sx={{ color: 'text.secondary', fontSize: { xs: 12, sm: 13 }, mt: 0.75 }}>
+            Viewing <Box component="strong" sx={{ color: 'text.primary' }}>{currentLabel}</Box>{' '}
+            · Source: Manual entry
+          </Typography>
+        )}
       </Box>
 
       <input
@@ -154,115 +185,142 @@ export function PageHead({
         onChange={handleFileChange}
       />
 
-      <Stack direction="row" gap={1} flexWrap="wrap">
-        <ButtonGroup
-          sx={{
-            background: colors.panel,
-            border: `1px solid ${colors.border}`,
-            borderRadius: '10px',
-            p: 0.4,
-            backdropFilter: 'blur(20px)',
-            '& .MuiButton-root': {
-              border: 'none',
-              minWidth: 'auto',
-              px: 1.75,
-              py: 0.75,
-              fontSize: 12,
-              borderRadius: '7px !important',
-              color: 'text.secondary',
-              fontWeight: 500,
-              '&:hover': { background: alpha(colors.ink, 0.04) },
-            },
-          }}
-        >
-          {PERIODS.map((p) => (
+      <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center">
+        {!hidePeriodSelector && (
+          <ButtonGroup
+            sx={{
+              background: colors.panel,
+              border: `1px solid ${colors.border}`,
+              borderRadius: '10px',
+              p: 0.4,
+              backdropFilter: 'blur(20px)',
+              '& .MuiButton-root': {
+                border: 'none',
+                minWidth: 'auto',
+                px: { xs: 1.25, sm: 1.75 },
+                py: 0.75,
+                fontSize: { xs: 11, sm: 12 },
+                borderRadius: '7px !important',
+                color: 'text.secondary',
+                fontWeight: 500,
+                '&:hover': { background: alpha(colors.ink, 0.04) },
+              },
+            }}
+          >
+            {PERIODS.map((p) => (
+              <Tooltip
+                key={p}
+                placement="bottom"
+                arrow
+                enterDelay={350}
+                title={
+                  <Box sx={{ p: 0.25 }}>
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 600, mb: 0.5 }}>{PERIOD_META[p].title}</Typography>
+                    <Typography sx={{ fontSize: 11.5, lineHeight: 1.6, opacity: 0.85 }}>{PERIOD_META[p].body}</Typography>
+                  </Box>
+                }
+                slotProps={{
+                  tooltip: { sx: { background: alpha(colors.ink, 0.93), backdropFilter: 'blur(16px)', border: `1px solid ${alpha(colors.ink, 0.2)}`, borderRadius: '10px', p: 1.5, maxWidth: 240 } },
+                  arrow: { sx: { color: alpha(colors.ink, 0.93) } },
+                }}
+              >
+                <Button
+                  onClick={() => onPeriodChange(p)}
+                  sx={{
+                    ...(activePeriod === p && {
+                      background: `${alpha(colors.ink, 0.06)} !important`,
+                      color: 'text.primary !important',
+                      fontWeight: '600 !important',
+                    }),
+                  }}
+                >
+                  {p}
+                </Button>
+              </Tooltip>
+            ))}
+          </ButtonGroup>
+        )}
+
+        {isMobile ? (
+          /* Icon-only buttons on mobile */
+          <>
+            <Tooltip title="Download template" arrow>
+              <IconButton sx={iconOnlySx} onClick={onDownloadTemplate}>
+                <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Import Excel" arrow>
+              <IconButton sx={iconOnlySx} onClick={() => fileInputRef.current?.click()}>
+                <FileUploadRoundedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Export Excel" arrow>
+              <IconButton sx={iconOnlySx} onClick={onExport}>
+                <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+            <IconButton
+              onClick={onOpenDrawer}
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: '10px',
+                background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`,
+                color: '#fff',
+                '&:hover': { background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`, filter: 'brightness(1.05)' },
+              }}
+            >
+              <AddRoundedIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </>
+        ) : (
+          /* Full-label buttons on sm+ */
+          <>
             <Tooltip
-              key={p}
+              title="Download a blank Excel template pre-filled with all month columns and zero amounts."
               placement="bottom"
               arrow
               enterDelay={350}
-              title={
-                <Box sx={{ p: 0.25 }}>
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, mb: 0.5 }}>{PERIOD_META[p].title}</Typography>
-                  <Typography sx={{ fontSize: 11.5, lineHeight: 1.6, opacity: 0.85 }}>{PERIOD_META[p].body}</Typography>
-                </Box>
-              }
               slotProps={{
-                tooltip: { sx: { background: alpha(colors.ink, 0.93), backdropFilter: 'blur(16px)', border: `1px solid ${alpha(colors.ink, 0.2)}`, borderRadius: '10px', p: 1.5, maxWidth: 240 } },
+                tooltip: { sx: { background: alpha(colors.ink, 0.93), backdropFilter: 'blur(16px)', border: `1px solid ${alpha(colors.ink, 0.2)}`, borderRadius: '10px', p: 1.5, maxWidth: 220, fontSize: 12 } },
                 arrow: { sx: { color: alpha(colors.ink, 0.93) } },
               }}
             >
-              <Button
-                onClick={() => onPeriodChange(p)}
-                sx={{
-                  ...(activePeriod === p && {
-                    background: `${alpha(colors.ink, 0.06)} !important`,
-                    color: 'text.primary !important',
-                    fontWeight: '600 !important',
-                  }),
-                }}
-              >
-                {p}
+              <Button startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 15 }} />} sx={controlBtnSx} onClick={onDownloadTemplate}>
+                Download Format
               </Button>
             </Tooltip>
-          ))}
-        </ButtonGroup>
 
-        <Tooltip
-          title="Download a blank Excel template pre-filled with all month columns and zero amounts."
-          placement="bottom"
-          arrow
-          enterDelay={350}
-          slotProps={{
-            tooltip: { sx: { background: alpha(colors.ink, 0.93), backdropFilter: 'blur(16px)', border: `1px solid ${alpha(colors.ink, 0.2)}`, borderRadius: '10px', p: 1.5, maxWidth: 220, fontSize: 12 } },
-            arrow: { sx: { color: alpha(colors.ink, 0.93) } },
-          }}
-        >
-          <Button
-            startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 15 }} />}
-            sx={controlBtnSx}
-            onClick={onDownloadTemplate}
-          >
-            Download Format
-          </Button>
-        </Tooltip>
+            <Button startIcon={<FileUploadRoundedIcon sx={{ fontSize: 15 }} />} sx={controlBtnSx} onClick={() => fileInputRef.current?.click()}>
+              Import Excel
+            </Button>
 
-        <Button
-          startIcon={<FileUploadRoundedIcon sx={{ fontSize: 15 }} />}
-          sx={controlBtnSx}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Import Excel
-        </Button>
+            <Button startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 15 }} />} sx={controlBtnSx} onClick={onExport}>
+              Export Excel
+            </Button>
 
-        <Button
-          startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 15 }} />}
-          sx={controlBtnSx}
-          onClick={onExport}
-        >
-          Export Excel
-        </Button>
-
-        <Button
-          startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />}
-          variant="contained"
-          onClick={onOpenDrawer}
-          sx={{
-            py: 1,
-            px: 2,
-            background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`,
-            color: '#fff',
-            fontSize: 12.5,
-            fontWeight: 600,
-            borderRadius: '10px',
-            '&:hover': {
-              background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`,
-              filter: 'brightness(1.05)',
-            },
-          }}
-        >
-          Input data
-        </Button>
+            <Button
+              startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />}
+              variant="contained"
+              onClick={onOpenDrawer}
+              sx={{
+                py: 1,
+                px: 2,
+                background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`,
+                color: '#fff',
+                fontSize: 12.5,
+                fontWeight: 600,
+                borderRadius: '10px',
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`,
+                  filter: 'brightness(1.05)',
+                },
+              }}
+            >
+              Input data
+            </Button>
+          </>
+        )}
       </Stack>
     </Stack>
   );

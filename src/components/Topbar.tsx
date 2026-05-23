@@ -14,6 +14,7 @@ import {
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { LedgerLogo } from './LedgerLogo';
 import { useColors } from '../theme/theme';
 import type { AuthUser } from '../auth';
@@ -23,9 +24,10 @@ interface TopbarProps {
   onToggleDark: () => void;
   user: AuthUser;
   onLogoutRequest: () => void;
+  onMenuClick: () => void;
 }
 
-export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest }: TopbarProps) {
+export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest, onMenuClick }: TopbarProps) {
   const colors = useColors();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
@@ -45,7 +47,7 @@ export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest }: Topbar
       direction="row"
       alignItems="center"
       sx={{
-        px: 4,
+        px: { xs: 2, sm: 4 },
         py: 1.75,
         borderBottom: `1px solid ${colors.border}`,
         background: colors.panelStrong,
@@ -54,20 +56,33 @@ export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest }: Topbar
         position: 'sticky',
         top: 0,
         zIndex: 10,
+        gap: 1.5,
       }}
     >
-      <Stack direction="row" alignItems="center" gap={1.25}>
-        <LedgerLogo size={32} />
-        <Box sx={{ lineHeight: 1.15 }}>
-          <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 17, letterSpacing: '0.2px', lineHeight: 1.1 }}>
-            Ledger Console
-          </Typography>
-          <Typography sx={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '1.5px', color: colors.inkSoft }}>
-            Finance · v0.0
-          </Typography>
-        </Box>
+      {/* Hamburger — mobile only */}
+      <IconButton
+        onClick={onMenuClick}
+        size="small"
+        sx={{ ...iconBtnSx, display: { xs: 'flex', md: 'none' } }}
+        aria-label="Open navigation"
+      >
+        <MenuRoundedIcon sx={{ fontSize: 20 }} />
+      </IconButton>
+
+      {/* App name — mobile only (sidebar hidden) */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        gap={1}
+        sx={{ display: { xs: 'flex', md: 'none' }, flex: 1, overflow: 'hidden' }}
+      >
+        <LedgerLogo size={22} />
+        <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 15, letterSpacing: '0.1px', whiteSpace: 'nowrap' }}>
+          Ledger Console
+        </Typography>
       </Stack>
 
+      {/* Right-side controls */}
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ ml: 'auto' }}>
         <Tooltip title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} arrow>
           <IconButton onClick={onToggleDark} sx={iconBtnSx}>
@@ -105,7 +120,7 @@ export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest }: Topbar
           >
             {user.username[0].toUpperCase()}
           </Avatar>
-          <Box>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             <Typography sx={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.2 }}>{user.username}</Typography>
             <Typography sx={{ fontSize: 10.5, color: colors.inkSoft, lineHeight: 1.2 }}>Admin</Typography>
           </Box>

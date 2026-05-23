@@ -1,218 +1,170 @@
-import { useState } from 'react';
-import { Box, Button, Stack, Typography, alpha } from '@mui/material';
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
-import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
-import QueryStatsRoundedIcon from '@mui/icons-material/QueryStatsRounded';
-import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
-import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
-import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
+import { Box, Drawer, IconButton, Stack, Tooltip, Typography, alpha } from '@mui/material';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import ElectricBoltRoundedIcon from '@mui/icons-material/ElectricBoltRounded';
+import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
+import FactoryRoundedIcon from '@mui/icons-material/FactoryRounded';
+import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
 import { LedgerLogo } from './LedgerLogo';
-import { customColors } from '../theme/theme';
+import { useColors } from '../theme/theme';
+
+export type EntityTab = 'soo' | 'dsm' | 'kps' | 'sl';
+
+const ENTITIES: { id: EntityTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'soo', label: 'SoO', icon: <ElectricBoltRoundedIcon sx={{ fontSize: 20 }} /> },
+  { id: 'dsm', label: 'DSM', icon: <SpeedRoundedIcon sx={{ fontSize: 20 }} /> },
+  { id: 'kps', label: 'KPS', icon: <FactoryRoundedIcon sx={{ fontSize: 20 }} /> },
+  { id: 'sl', label: 'SL (in PhP)', icon: <TrendingDownRoundedIcon sx={{ fontSize: 20 }} /> },
+];
 
 interface SidebarProps {
-  onOpenDrawer: () => void;
+  activeEntity: EntityTab;
+  onEntityChange: (entity: EntityTab) => void;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }
 
-const workspace = [
-  { id: 'overview', label: 'Overview', icon: <HomeRoundedIcon fontSize="small" /> },
-  { id: 'performance', label: 'Performance', icon: <InsightsRoundedIcon fontSize="small" />, badge: 3 },
-  { id: 'operations', label: 'Operations', icon: <GridViewRoundedIcon fontSize="small" /> },
-  { id: 'forecasting', label: 'Forecasting', icon: <QueryStatsRoundedIcon fontSize="small" /> },
-  { id: 'assets', label: 'Assets', icon: <Inventory2RoundedIcon fontSize="small" /> },
-];
+function SidebarContent({
+  activeEntity,
+  onEntityChange,
+  onClose,
+}: {
+  activeEntity: EntityTab;
+  onEntityChange: (entity: EntityTab) => void;
+  onClose?: () => void;
+}) {
+  const colors = useColors();
 
-const insights = [
-  { id: 'reports', label: 'Reports', icon: <DescriptionRoundedIcon fontSize="small" /> },
-  { id: 'automations', label: 'Automations', icon: <AutoAwesomeRoundedIcon fontSize="small" /> },
-  { id: 'compliance', label: 'Compliance', icon: <VerifiedRoundedIcon fontSize="small" /> },
-];
-
-export function Sidebar({ onOpenDrawer }: SidebarProps) {
-  const [active, setActive] = useState('overview');
-
-  const renderItem = (item: typeof workspace[number]) => {
-    const isActive = active === item.id;
-    return (
-      <Box
-        key={item.id}
-        role="button"
-        tabIndex={0}
-        onClick={() => setActive(item.id)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setActive(item.id);
-          }
-        }}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          px: 1.5,
-          py: 1.1,
-          borderRadius: '10px',
-          cursor: 'pointer',
-          color: isActive ? 'text.primary' : 'text.secondary',
-          fontSize: 13.5,
-          fontWeight: 500,
-          position: 'relative',
-          transition: 'all 0.2s ease',
-          background: isActive
-            ? `linear-gradient(90deg, ${alpha(customColors.accent, 0.16)}, ${alpha(customColors.accent, 0.02)})`
-            : 'transparent',
-          '&:hover': {
-            background: alpha(customColors.ink, 0.04),
-            color: 'text.primary',
-          },
-          '&::before': isActive
-            ? {
-                content: '""',
-                position: 'absolute',
-                left: 0,
-                top: 8,
-                bottom: 8,
-                width: 2,
-                background: customColors.accent,
-                borderRadius: '0 2px 2px 0',
-              }
-            : {},
-        }}
-      >
-        {item.icon}
-        <Box component="span" sx={{ flex: 1 }}>
-          {item.label}
-        </Box>
-        {'badge' in item && item.badge ? (
-          <Box
-            component="span"
-            sx={{
-              fontSize: 10,
-              px: 0.9,
-              py: 0.25,
-              background: alpha(customColors.accent3, 0.15),
-              color: customColors.accent3,
-              borderRadius: 99,
-              fontWeight: 600,
-            }}
-          >
-            {item.badge}
-          </Box>
-        ) : null}
-      </Box>
-    );
+  const handleSelect = (id: EntityTab) => {
+    onEntityChange(id);
+    onClose?.();
   };
 
   return (
-    <Box
-      component="aside"
-      sx={{
-        borderRight: `1px solid ${customColors.border}`,
-        background: `linear-gradient(180deg, ${alpha('#ffffff', 0.6)}, ${alpha('#ffffff', 0.3)})`,
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        p: '22px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 3.5,
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        zIndex: 2,
-      }}
-    >
+    <>
       <Stack
         direction="row"
         alignItems="center"
-        gap={1.5}
-        sx={{ pb: 2.25, borderBottom: `1px solid ${customColors.border}`, px: 1 }}
+        sx={{ px: 2, borderBottom: `1px solid ${colors.border}`, gap: 1.5, minHeight: 64 }}
       >
-        <LedgerLogo size={34} />
-        <Box sx={{ lineHeight: 1.1 }}>
-          <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 19, letterSpacing: '0.2px' }}>
+        <LedgerLogo size={30} />
+        <Box sx={{ flex: 1, overflow: 'hidden' }}>
+          <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 16, letterSpacing: '0.1px', whiteSpace: 'nowrap' }}>
             Ledger Console
           </Typography>
-          <Typography
-            sx={{
-              fontSize: 10,
-              textTransform: 'uppercase',
-              letterSpacing: '1.6px',
-              color: customColors.inkSoft,
-              mt: '2px',
-            }}
-          >
-            Finance · v0.0
+          <Typography sx={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '1.4px', color: colors.inkSoft, mt: '1px' }}>
+            Finance · v1.0
           </Typography>
         </Box>
+        {onClose && (
+          <IconButton onClick={onClose} size="small" sx={{ color: colors.inkSoft, '&:hover': { color: 'text.primary' } }}>
+            <CloseRoundedIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        )}
       </Stack>
 
-      <Box>
-        <Typography
-          sx={{
-            fontSize: 10,
-            textTransform: 'uppercase',
-            letterSpacing: '1.4px',
-            color: customColors.inkSoft,
-            px: 1.5,
-            pb: 1,
-          }}
-        >
-          Workspace
+      <Stack gap={0.5} sx={{ p: '20px 10px', flex: 1 }}>
+        <Typography sx={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '1.4px', color: colors.inkSoft, px: 1, pb: 1 }}>
+          Entities
         </Typography>
-        <Stack gap={0.25}>{workspace.map(renderItem)}</Stack>
-      </Box>
 
-      <Box>
-        <Typography
-          sx={{
-            fontSize: 10,
-            textTransform: 'uppercase',
-            letterSpacing: '1.4px',
-            color: customColors.inkSoft,
-            px: 1.5,
-            pb: 1,
-          }}
-        >
-          Insights
-        </Typography>
-        <Stack gap={0.25}>{insights.map(renderItem)}</Stack>
-      </Box>
+        {ENTITIES.map((e) => {
+          const isActive = e.id === activeEntity;
+          return (
+            <Tooltip key={e.id} title="" placement="right">
+              <Box
+                role="button"
+                tabIndex={0}
+                onClick={() => handleSelect(e.id)}
+                onKeyDown={(ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); handleSelect(e.id); }
+                }}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  px: 1.5,
+                  py: 1.1,
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  color: isActive ? 'text.primary' : 'text.secondary',
+                  fontWeight: 500,
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                  background: isActive
+                    ? `linear-gradient(90deg, ${alpha(colors.accent, 0.16)}, ${alpha(colors.accent, 0.02)})`
+                    : 'transparent',
+                  '&:hover': {
+                    background: isActive
+                      ? `linear-gradient(90deg, ${alpha(colors.accent, 0.16)}, ${alpha(colors.accent, 0.02)})`
+                      : alpha(colors.ink, 0.04),
+                    color: 'text.primary',
+                  },
+                  '&::before': isActive
+                    ? { content: '""', position: 'absolute', left: 0, top: 8, bottom: 8, width: 2, background: colors.accent, borderRadius: '0 2px 2px 0' }
+                    : {},
+                }}
+              >
+                <Box sx={{ color: isActive ? colors.accent : 'inherit', display: 'flex' }}>
+                  {e.icon}
+                </Box>
+                <Typography component="span" sx={{ fontSize: 13.5, fontWeight: isActive ? 600 : 500 }}>
+                  {e.label}
+                </Typography>
+              </Box>
+            </Tooltip>
+          );
+        })}
+      </Stack>
+    </>
+  );
+}
 
+export function Sidebar({ activeEntity, onEntityChange, mobileOpen, onMobileClose }: SidebarProps) {
+  const colors = useColors();
+
+  return (
+    <>
+      {/* Desktop: sticky aside */}
       <Box
+        component="aside"
         sx={{
-          mt: 'auto',
-          border: `1px solid ${customColors.border}`,
-          borderRadius: '14px',
-          p: 1.75,
-          background: alpha('#ffffff', 0.5),
+          width: 220,
+          flexShrink: 0,
+          borderRight: `1px solid ${colors.border}`,
+          background: colors.panel,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          zIndex: 10,
         }}
       >
-        <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Need fresh data?</Typography>
-        <Typography sx={{ fontSize: 11.5, color: 'text.secondary', my: '4px 10px', lineHeight: 1.5 }}>
-          Input or update your monthly P&L figures to refresh every visual instantly.
-        </Typography>
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={onOpenDrawer}
-          sx={{
-            mt: 1.25,
-            py: 1,
-            background: `linear-gradient(135deg, ${customColors.accent}, ${customColors.accent2})`,
-            color: '#fff',
-            fontSize: 12,
-            fontWeight: 600,
-            borderRadius: '8px',
-            '&:hover': {
-              background: `linear-gradient(135deg, ${customColors.accent}, ${customColors.accent2})`,
-              filter: 'brightness(1.05)',
-            },
-          }}
-        >
-          Open data input →
-        </Button>
+        <SidebarContent activeEntity={activeEntity} onEntityChange={onEntityChange} />
       </Box>
-    </Box>
+
+      {/* Mobile: temporary drawer */}
+      <Drawer
+        open={mobileOpen}
+        onClose={onMobileClose}
+        variant="temporary"
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            width: 240,
+            background: colors.panel,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRight: `1px solid ${colors.border}`,
+            boxSizing: 'border-box',
+          },
+        }}
+      >
+        <SidebarContent activeEntity={activeEntity} onEntityChange={onEntityChange} onClose={onMobileClose} />
+      </Drawer>
+    </>
   );
 }

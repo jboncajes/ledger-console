@@ -14,20 +14,24 @@ interface LineItemDef {
 }
 
 const LINE_ITEMS: LineItemDef[] = [
-  { label: 'Total Operating Revenue',           get: (m) => m.inputs.opRev,                        computed: false },
-  { label: 'Other Revenue',               get: (m) => m.inputs.othRev,                       computed: false },
-  { label: 'Total Revenue',               get: (m) => computePeriod(m.inputs).totalRev,       computed: true  },
-  { label: 'Total Power Purchased',             get: (m) => m.inputs.power,                        computed: false },
-  { label: 'Total Operating and Maintenance Expenses',                 get: (m) => m.inputs.om,                           computed: false },
-  { label: 'Operating Margin',            get: (m) => computePeriod(m.inputs).opMargin,       computed: true  },
-  { label: 'Depreciation',                get: (m) => m.inputs.deprec,                       computed: false },
-  { label: 'Interest Expense',            get: (m) => m.inputs.interest,                     computed: false },
-  { label: 'Net Operating Margin',        get: (m) => computePeriod(m.inputs).netOpMargin,    computed: true  },
-  { label: 'Non-Total Operating Revenue',       get: (m) => m.inputs.nonOpRev,                     computed: false },
-  { label: 'Non-Operating Expense',       get: (m) => m.inputs.nonOpExp,                     computed: false },
-  { label: 'Net Margin',                  get: (m) => computePeriod(m.inputs).netMargin,      computed: true  },
-  { label: 'RFSC',                        get: (m) => m.inputs.rfsc,                         computed: false },
-  { label: 'Total Margin (Gross of RFSC)',get: (m) => computePeriod(m.inputs).totalMargin,    computed: true  },
+  { label: 'Operating Revenue',                        get: (m) => m.inputs.opRev,                              computed: false },
+  { label: 'Other Revenue',                            get: (m) => m.inputs.othRev,                             computed: false },
+  { label: 'Total Revenue',                            get: (m) => computePeriod(m.inputs).totalRev,            computed: true  },
+  { label: 'Total Power Purchased',                    get: (m) => m.inputs.power,                              computed: false },
+  { label: 'Distribution Expenses',                    get: (m) => m.inputs.distrib,                            computed: false },
+  { label: 'Supply Expenses',                          get: (m) => m.inputs.supply,                             computed: false },
+  { label: 'Metering Expenses',                        get: (m) => m.inputs.meter,                              computed: false },
+  { label: 'Administrative And General Expenses',      get: (m) => m.inputs.adg,                                computed: false },
+  { label: 'Total Operating and Maintenance Expense',  get: (m) => computePeriod(m.inputs).om,                  computed: true  },
+  { label: 'Operating Margin',                         get: (m) => computePeriod(m.inputs).opMargin,            computed: true  },
+  { label: 'Depreciation',                             get: (m) => m.inputs.deprec,                             computed: false },
+  { label: 'Interest Expense',                         get: (m) => m.inputs.interest,                           computed: false },
+  { label: 'Net Operating Margin',                     get: (m) => computePeriod(m.inputs).netOpMargin,         computed: true  },
+  { label: 'Non-Operating Revenue',                    get: (m) => m.inputs.nonOpRev,                           computed: false },
+  { label: 'Non-Operating Expense',                    get: (m) => m.inputs.nonOpExp,                           computed: false },
+  { label: 'Net Margin',                               get: (m) => computePeriod(m.inputs).netMargin,           computed: true  },
+  { label: 'RFSC',                                     get: (m) => m.inputs.rfsc,                               computed: false },
+  { label: 'Total Margin (Gross of RFSC)',              get: (m) => computePeriod(m.inputs).totalMargin,         computed: true  },
 ];
 
 export async function exportToExcel(months: MonthRecord[], filename?: string): Promise<void> {
@@ -129,7 +133,7 @@ export async function exportToExcel(months: MonthRecord[], filename?: string): P
 export async function downloadTemplate(): Promise<void> {
   const blank: MonthRecord[] = MONTHS_SEED.map((m) => ({
     ...m,
-    inputs: { opRev: 0, othRev: 0, power: 0, om: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0 },
+    inputs: { opRev: 0, othRev: 0, power: 0, distrib: 0, supply: 0, meter: 0, adg: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0 },
   }));
   await exportToExcel(blank, 'ledger-console-template.xlsx');
 }
