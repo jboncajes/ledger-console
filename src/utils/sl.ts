@@ -27,8 +27,8 @@ const MONTH_NAMES = [
 function cutoffId(): string {
   const now = new Date();
   const m = now.getMonth();
-  if (m === 0) return `${now.getFullYear() - 1}-12`;
-  return `${now.getFullYear()}-${String(m).padStart(2, '0')}`;
+  if (m === 0) return `${now.getFullYear()}-01`;
+  return `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
 }
 
 export function generateSlSeed(): SlMonthRecord[] {

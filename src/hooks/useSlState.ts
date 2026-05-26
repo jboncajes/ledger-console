@@ -1,16 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SlInputs, SlMonthRecord } from '../types/pnl';
 import { SL_MONTHS_SEED, SL_ZERO } from '../utils/sl';
+import { fetchRecords, upsertRecords } from '../lib/db';
 
-function cutoffId(): string {
+function strictCutoffId(): string {
   const now = new Date();
   const m = now.getMonth();
   if (m === 0) return `${now.getFullYear() - 1}-12`;
   return `${now.getFullYear()}-${String(m).padStart(2, '0')}`;
 }
 
-function strip(months: SlMonthRecord[]): SlMonthRecord[] {
-  const cutoff = cutoffId();
+function looseCutoffId(): string {
+  const now = new Date();
+  const m = now.getMonth();
+  if (m === 0) return `${now.getFullYear()}-01`;
+  return `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
+}
+
+function stripToAllowed(months: SlMonthRecord[]): SlMonthRecord[] {
+  const cutoff = looseCutoffId();
   return months.filter((m) => m.id < cutoff);
 }
 
@@ -23,46 +31,54 @@ function migrateInputs(inp: Partial<SlInputs> & Record<string, unknown>): SlInpu
   };
 }
 
-function load(key: string): SlMonthRecord[] {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return SL_MONTHS_SEED;
-    const parsed = JSON.parse(raw) as SlMonthRecord[];
-    if (!Array.isArray(parsed) || parsed.length === 0) return SL_MONTHS_SEED;
-    return strip(parsed.map((m) => ({ ...m, inputs: migrateInputs(m.inputs as Partial<SlInputs> & Record<string, unknown>) })));
-  } catch {
-    return SL_MONTHS_SEED;
-  }
-}
-
-export function useSlState(namespace = 'sl') {
-  const storageKey = `ledger-console:sl:v1:${namespace}`;
-  const [months, setMonths] = useState<SlMonthRecord[]>(() => load(storageKey));
+export function useSlState(namespace = 'sl', showPrevMonth = false) {
+  const [allMonths, setAllMonths] = useState<SlMonthRecord[]>(SL_MONTHS_SEED);
+  const [synced, setSynced] = useState(false);
 
   useEffect(() => {
-    try { window.localStorage.setItem(storageKey, JSON.stringify(months)); } catch { /* ignore */ }
-  }, [months, storageKey]);
+    let cancelled = false;
+    fetchRecords('sl', namespace).then((rows) => {
+      if (cancelled) return;
+      if (rows.length > 0) {
+        const seedMap = new Map(SL_MONTHS_SEED.map((m) => [m.id, m]));
+        for (const r of rows) seedMap.set(r.id, { id: r.id, label: r.label, year: r.year, month: r.month, inputs: migrateInputs(r.inputs as Partial<SlInputs> & Record<string, unknown>) });
+        setAllMonths(stripToAllowed([...seedMap.values()].sort((a, b) => a.id.localeCompare(b.id))));
+      }
+      setSynced(true);
+    });
+    return () => { cancelled = true; };
+  }, [namespace]);
+
+  useEffect(() => {
+    if (!synced) return;
+    upsertRecords('sl', namespace, allMonths);
+  }, [allMonths, namespace, synced]);
+
+  const months = useMemo(() => {
+    if (showPrevMonth) return allMonths;
+    const cutoff = strictCutoffId();
+    return allMonths.filter((m) => m.id < cutoff);
+  }, [allMonths, showPrevMonth]);
 
   const updateMonthField = useCallback(
     (monthId: string, field: keyof SlInputs, value: number) => {
-      setMonths((prev) => prev.map((m) =>
+      setAllMonths((prev) => prev.map((m) =>
         m.id === monthId ? { ...m, inputs: { ...m.inputs, [field]: value } } : m,
       ));
-    },
-    [],
+    }, [],
   );
 
   const resetMonth = useCallback((monthId: string) => {
-    setMonths((prev) => prev.map((m) =>
+    setAllMonths((prev) => prev.map((m) =>
       m.id === monthId ? { ...m, inputs: { ...SL_ZERO } } : m,
     ));
   }, []);
 
   const importMonths = useCallback((imported: SlMonthRecord[]) => {
-    setMonths((prev) => {
+    setAllMonths((prev) => {
       const map = new Map(prev.map((m) => [m.id, m]));
       for (const m of imported) map.set(m.id, m);
-      return strip([...map.values()].sort((a, b) => a.id.localeCompare(b.id)));
+      return stripToAllowed([...map.values()].sort((a, b) => a.id.localeCompare(b.id)));
     });
   }, []);
 

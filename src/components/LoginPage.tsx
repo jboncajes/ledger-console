@@ -28,20 +28,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) return;
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const user = login(username, password);
-      if (user) {
-        onLogin(user);
-      } else {
-        setError('Invalid username or password.');
-        setLoading(false);
-      }
-    }, 380);
+    const user = await login(username, password);
+    if (user) {
+      onLogin(user);
+    } else {
+      setError('Invalid email or password.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,13 +81,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <Stack gap={2.25}>
           <TextField
-            label="Username"
+            label="Email"
+            type="email"
             value={username}
             onChange={(e) => { setUsername(e.target.value); setError(''); }}
             autoFocus
             fullWidth
             size="small"
-            autoComplete="username"
+            autoComplete="email"
             sx={fieldSx(colors)}
           />
 

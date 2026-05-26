@@ -52,7 +52,7 @@ function SidebarContent({
             Ledger Console
           </Typography>
           <Typography sx={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '1.4px', color: colors.inkSoft, mt: '1px' }}>
-            Finance · v1.0
+            Finance · v1.1
           </Typography>
         </Box>
         {onClose && (

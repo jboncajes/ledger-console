@@ -1,104 +1,88 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-// activePeriod is now passed in as a parameter — managed by Redux in App.tsx
 import type { MonthRecord, PeriodView, PnlInputs } from '../types/pnl';
 import { MONTHS_SEED, computePeriod, getPeriodSlices } from '../utils/pnl';
+import { fetchRecords, upsertRecords } from '../lib/db';
 
-function cutoffMonthId(): string {
+function strictCutoffMonthId(): string {
   const now = new Date();
   const m = now.getMonth();
   if (m === 0) return `${now.getFullYear() - 1}-12`;
   return `${now.getFullYear()}-${String(m).padStart(2, '0')}`;
 }
 
-function stripRecentMonths(months: MonthRecord[]): MonthRecord[] {
-  const cutoff = cutoffMonthId();
+function looseCutoffMonthId(): string {
+  const now = new Date();
+  const m = now.getMonth();
+  if (m === 0) return `${now.getFullYear()}-01`;
+  return `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
+}
+
+function stripToAllowed(months: MonthRecord[]): MonthRecord[] {
+  const cutoff = looseCutoffMonthId();
   return months.filter((m) => m.id < cutoff);
 }
 
-function loadFromStorage(storageKey: string): MonthRecord[] {
-  if (typeof window === 'undefined') return MONTHS_SEED;
-  try {
-    const raw = window.localStorage.getItem(storageKey);
-    if (!raw) return MONTHS_SEED;
-    const parsed = JSON.parse(raw) as MonthRecord[];
-    if (!Array.isArray(parsed) || parsed.length === 0) return MONTHS_SEED;
-    return stripRecentMonths(parsed);
-  } catch {
-    return MONTHS_SEED;
-  }
-}
-
-export function usePnlState(namespace: string = 'soo', activePeriod: PeriodView = 'MoM') {
-  const storageKey = `ledger-console:months:v2:${namespace}`;
-  const [months, setMonths] = useState<MonthRecord[]>(() => loadFromStorage(storageKey));
+export function usePnlState(namespace: string = 'soo', activePeriod: PeriodView = 'MoM', showPrevMonth = false) {
+  const [allMonths, setAllMonths] = useState<MonthRecord[]>(MONTHS_SEED);
+  const [synced, setSynced] = useState(false);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(storageKey, JSON.stringify(months));
-    } catch {
-      // ignore quota errors
-    }
-  }, [months, storageKey]);
+    let cancelled = false;
+    fetchRecords('pnl', namespace).then((rows) => {
+      if (cancelled) return;
+      if (rows.length > 0) {
+        const seedMap = new Map(MONTHS_SEED.map((m) => [m.id, m]));
+        for (const r of rows) seedMap.set(r.id, { id: r.id, label: r.label, year: r.year, month: r.month, inputs: r.inputs as PnlInputs });
+        setAllMonths(stripToAllowed([...seedMap.values()].sort((a, b) => a.id.localeCompare(b.id))));
+      }
+      setSynced(true);
+    });
+    return () => { cancelled = true; };
+  }, [namespace]);
 
-  const displayData = useMemo(
-    () => getPeriodSlices(months, activePeriod),
-    [months, activePeriod],
-  );
+  useEffect(() => {
+    if (!synced) return;
+    upsertRecords('pnl', namespace, allMonths);
+  }, [allMonths, namespace, synced]);
 
-  const computed = useMemo(
-    () => ({
-      prior: computePeriod(displayData.prior),
-      current: computePeriod(displayData.current),
-    }),
-    [displayData],
-  );
+  const months = useMemo(() => {
+    if (showPrevMonth) return allMonths;
+    const cutoff = strictCutoffMonthId();
+    return allMonths.filter((m) => m.id < cutoff);
+  }, [allMonths, showPrevMonth]);
+
+  const displayData = useMemo(() => getPeriodSlices(months, activePeriod), [months, activePeriod]);
+
+  const computed = useMemo(() => ({
+    prior: computePeriod(displayData.prior),
+    current: computePeriod(displayData.current),
+  }), [displayData]);
 
   const updateMonthField = useCallback(
     (monthId: string, field: keyof PnlInputs, value: number) => {
-      setMonths((prev) =>
-        prev.map((m) =>
-          m.id === monthId ? { ...m, inputs: { ...m.inputs, [field]: value } } : m,
-        ),
-      );
-    },
-    [],
+      setAllMonths((prev) => prev.map((m) =>
+        m.id === monthId ? { ...m, inputs: { ...m.inputs, [field]: value } } : m,
+      ));
+    }, [],
   );
 
   const resetMonth = useCallback((monthId: string) => {
     const seed = MONTHS_SEED.find((m) => m.id === monthId);
     if (!seed) return;
-    setMonths((prev) =>
-      prev.map((m) => (m.id === monthId ? { ...m, inputs: { ...seed.inputs } } : m)),
-    );
+    setAllMonths((prev) => prev.map((m) => m.id === monthId ? { ...m, inputs: { ...seed.inputs } } : m));
   }, []);
 
   const importMonths = useCallback((imported: MonthRecord[]) => {
-    setMonths((prev) => {
+    setAllMonths((prev) => {
       const map = new Map(prev.map((m) => [m.id, m]));
       for (const m of imported) map.set(m.id, m);
-      return stripRecentMonths(
-        [...map.values()].sort((a, b) => a.id.localeCompare(b.id)),
-      );
+      return stripToAllowed([...map.values()].sort((a, b) => a.id.localeCompare(b.id)));
     });
   }, []);
 
   const resetAll = useCallback(() => {
-    setMonths(MONTHS_SEED);
-    try {
-      window.localStorage.removeItem(storageKey);
-    } catch {
-      // ignore
-    }
-  }, [storageKey]);
+    setAllMonths(MONTHS_SEED);
+  }, []);
 
-  return {
-    months,
-    activePeriod,
-    updateMonthField,
-    resetMonth,
-    resetAll,
-    importMonths,
-    displayData,
-    computed,
-  };
+  return { months, activePeriod, updateMonthField, resetMonth, resetAll, importMonths, displayData, computed };
 }

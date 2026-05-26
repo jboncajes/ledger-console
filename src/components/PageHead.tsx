@@ -16,6 +16,7 @@ import {
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import FileUploadRoundedIcon from '@mui/icons-material/FileUploadRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import type { PeriodView } from '../types/pnl';
 import { useColors } from '../theme/theme';
 
@@ -50,6 +51,10 @@ interface PageHeadProps {
   onExport: () => void;
   onImport: (file: File) => void;
   onDownloadTemplate: () => void;
+  showPrevMonth?: boolean;
+  onTogglePrevMonth?: () => void;
+  prevMonthLabel?: string;
+  username?: string;
 }
 
 const pulse = keyframes`
@@ -67,6 +72,10 @@ export function PageHead({
   onExport,
   onImport,
   onDownloadTemplate,
+  showPrevMonth = false,
+  onTogglePrevMonth,
+  prevMonthLabel,
+  username = 'there',
 }: PageHeadProps) {
   const colors = useColors();
   const theme = useTheme();
@@ -126,7 +135,7 @@ export function PageHead({
             variant="h1"
             sx={{ fontSize: { xs: '1.7rem', sm: '2.4rem' }, lineHeight: 1.1 }}
           >
-            {greeting}, Zaii!
+            {greeting}, {username}!
           </Typography>
           <Chip
             label="LIVE"
@@ -253,6 +262,24 @@ export function PageHead({
                 <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
+            {onTogglePrevMonth && prevMonthLabel && (
+              <Tooltip title={`${showPrevMonth ? 'Hide' : 'Include'} ${prevMonthLabel}`} arrow>
+                <IconButton
+                  onClick={onTogglePrevMonth}
+                  sx={{
+                    ...iconOnlySx,
+                    ...(showPrevMonth && {
+                      background: alpha(colors.accent, 0.12),
+                      borderColor: alpha(colors.accent, 0.4),
+                      color: colors.accent,
+                      '&:hover': { background: alpha(colors.accent, 0.2), borderColor: alpha(colors.accent, 0.5) },
+                    }),
+                  }}
+                >
+                  <CalendarMonthRoundedIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            )}
             <IconButton
               onClick={onOpenDrawer}
               sx={{
@@ -292,6 +319,35 @@ export function PageHead({
             <Button startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 15 }} />} sx={controlBtnSx} onClick={onExport}>
               Export Excel
             </Button>
+
+            {onTogglePrevMonth && prevMonthLabel && (
+              <Tooltip
+                title={`${showPrevMonth ? 'Hide' : 'Include'} ${prevMonthLabel} in display and export`}
+                placement="bottom"
+                arrow
+                enterDelay={350}
+                slotProps={{
+                  tooltip: { sx: { background: alpha(colors.ink, 0.93), backdropFilter: 'blur(16px)', border: `1px solid ${alpha(colors.ink, 0.2)}`, borderRadius: '10px', p: 1.5, maxWidth: 220, fontSize: 12 } },
+                  arrow: { sx: { color: alpha(colors.ink, 0.93) } },
+                }}
+              >
+                <Button
+                  startIcon={<CalendarMonthRoundedIcon sx={{ fontSize: 15 }} />}
+                  onClick={onTogglePrevMonth}
+                  sx={{
+                    ...controlBtnSx,
+                    ...(showPrevMonth && {
+                      background: alpha(colors.accent, 0.12),
+                      borderColor: alpha(colors.accent, 0.4),
+                      color: colors.accent,
+                      '&:hover': { background: alpha(colors.accent, 0.2), borderColor: alpha(colors.accent, 0.5) },
+                    }),
+                  }}
+                >
+                  {prevMonthLabel.split(' ')[0].slice(0, 3)}
+                </Button>
+              </Tooltip>
+            )}
 
             <Button
               startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />}

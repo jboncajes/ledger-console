@@ -13,7 +13,19 @@
       "Bash(node gen-kps-sample.cjs)",
       "Bash(del \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\gen-kps-sample.cjs\")",
       "Bash(node gen-sl-sample.cjs)",
-      "Bash(del \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\gen-sl-sample.cjs\")"
+      "Bash(del \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\gen-sl-sample.cjs\")",
+      "Bash(npx vite *)",
+      "Bash(findstr supabase *)",
+      "Bash(echo.)",
+      "Bash(New-Item -ItemType File -Path \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\vite-env.d.ts\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"created\")",
+      "PowerShell(New-Item -ItemType File -Path \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\vite-env.d.ts\" -Force)",
+      "PowerShell(\"created\")",
+      "Bash(Test-Path \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\store\\\\uiSlice.ts\")",
+      "Bash(npm run *)",
+      "Bash(del src\\\\utils\\\\generateReport.ts src\\\\components\\\\GenerateReportDialog.tsx)",
+      "Bash(Remove-Item \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\utils\\\\generateReport.ts\", \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\components\\\\GenerateReportDialog.tsx\" -Force)"
     ],
     "additionalDirectories": [
       "c:\\Users\\JBONCAJES\\.claude\\projects\\c--Test-ledger-console-ledger-console\\memory"

@@ -1,34 +1,34 @@
+import { supabase } from './lib/supabase';
+
 export interface AuthUser {
+  id: string;
   username: string;
+  email: string;
 }
 
-const CREDENTIALS = [
-  { username: 'Zaii', password: 'P@ssword122825' },
-  { username: 'Ruru', password: 'P@ssword091425' },
-];
-
-const AUTH_KEY = 'ledger-console:auth';
-
-export function login(username: string, password: string): AuthUser | null {
-  const match = CREDENTIALS.find(
-    (c) => c.username.toLowerCase() === username.toLowerCase() && c.password === password,
-  );
-  if (!match) return null;
-  const user: AuthUser = { username: match.username };
-  try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(user)); } catch { /* ignore */ }
-  return user;
+function toAuthUser(user: { id: string; email?: string; user_metadata?: Record<string, unknown> }): AuthUser {
+  const email = user.email ?? '';
+  const meta = user.user_metadata ?? {};
+  const displayName = meta['full_name'] ?? meta['display_name'] ?? meta['name'] ?? meta['username'];
+  const username = typeof displayName === 'string' && displayName.trim()
+    ? displayName.trim()
+    : email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return { id: user.id, username, email };
 }
 
-export function logout(): void {
-  try { sessionStorage.removeItem(AUTH_KEY); } catch { /* ignore */ }
+export async function login(email: string, password: string): Promise<AuthUser | null> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.user) return null;
+  return toAuthUser(data.user);
 }
 
-export function getStoredUser(): AuthUser | null {
-  try {
-    const raw = sessionStorage.getItem(AUTH_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AuthUser;
-  } catch {
-    return null;
-  }
+export async function logout(): Promise<void> {
+  await supabase.auth.signOut();
+}
+
+export async function getStoredUser(): Promise<AuthUser | null> {
+  const { data } = await supabase.auth.getSession();
+  const user = data.session?.user;
+  if (!user) return null;
+  return toAuthUser(user);
 }

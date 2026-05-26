@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { setActiveEntity, setPeriod } from './store/uiSlice';
 import type { EntityTab } from './components/Sidebar';
@@ -41,6 +41,7 @@ import { useSlState } from './hooks/useSlState';
 import { createAppTheme, useColors } from './theme/theme';
 import { PESO } from './utils/format';
 import { getStoredUser, logout } from './auth';
+import { supabase } from './lib/supabase';
 import { exportToExcel, downloadTemplate } from './utils/exportExcel';
 import { importFromExcel } from './utils/importExcel';
 import { exportDsmToExcel, downloadDsmTemplate } from './utils/exportDsmExcel';
@@ -51,10 +52,42 @@ import { exportSlToExcel, downloadSlTemplate } from './utils/exportSlExcel';
 import { importSlFromExcel } from './utils/importSlExcel';
 import type { AuthUser } from './auth';
 
+function getPrevMonthLabel(): string {
+  const LONG = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now = new Date();
+  const m = now.getMonth();
+  if (m === 0) return `December ${now.getFullYear() - 1}`;
+  return `${LONG[m - 1]} ${now.getFullYear()}`;
+}
+
 export default function App() {
   const [darkMode, setDarkMode] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const appTheme = useMemo(() => createAppTheme(darkMode ? 'dark' : 'light'), [darkMode]);
+
+  useEffect(() => {
+    getStoredUser().then((u) => {
+      setUser(u);
+      setAuthReady(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) { setUser(null); return; }
+      const u = session.user;
+      const email = u.email ?? '';
+      const meta = u.user_metadata ?? {};
+      const displayName = meta['full_name'] ?? meta['display_name'] ?? meta['name'] ?? meta['username'];
+      const username = typeof displayName === 'string' && displayName.trim()
+        ? displayName.trim()
+        : email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      setUser({ id: u.id, username, email });
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!authReady) return null;
 
   return (
     <ThemeProvider theme={appTheme}>
@@ -64,7 +97,7 @@ export default function App() {
           user={user}
           darkMode={darkMode}
           onToggleDark={() => setDarkMode((d) => !d)}
-          onLogout={() => { logout(); setUser(null); }}
+          onLogout={async () => { await logout(); setUser(null); }}
         />
       ) : (
         <LoginPage onLogin={(u) => setUser(u)} />
@@ -86,12 +119,23 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
   const activeEntity = useAppSelector((s) => s.ui.activeEntity);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [prevMonthMap, setPrevMonthMap] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('prevMonthMap') ?? '{}'); } catch { return {}; }
+  });
   const [toast, setToast] = useState<{ open: boolean; msg: string; severity: 'success' | 'info' | 'warning' }>({
     open: false, msg: '', severity: 'success',
   });
 
   const showToast = useCallback((msg: string, severity: 'success' | 'info' | 'warning' = 'success') => {
     setToast({ open: true, msg, severity });
+  }, []);
+
+  const togglePrevMonth = useCallback((tab: string) => {
+    setPrevMonthMap((prev) => {
+      const next = { ...prev, [tab]: !(prev[tab] ?? false) };
+      localStorage.setItem('prevMonthMap', JSON.stringify(next));
+      return next;
+    });
   }, []);
 
   return (
@@ -114,12 +158,12 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
 
         {/* Re-mount view on tab switch so each entity gets fresh state */}
         {activeEntity === 'dsm'
-          ? <DsmEntityView key={activeEntity} showToast={showToast} />
+          ? <DsmEntityView key={activeEntity} showToast={showToast} username={user.username} showPrevMonth={prevMonthMap['dsm'] ?? false} onTogglePrevMonth={() => togglePrevMonth('dsm')} />
           : activeEntity === 'kps'
-          ? <KpsEntityView key={activeEntity} showToast={showToast} />
+          ? <KpsEntityView key={activeEntity} showToast={showToast} username={user.username} showPrevMonth={prevMonthMap['kps'] ?? false} onTogglePrevMonth={() => togglePrevMonth('kps')} />
           : activeEntity === 'sl'
-          ? <SlEntityView key={activeEntity} showToast={showToast} />
-          : <EntityView key={activeEntity} namespace={activeEntity} showToast={showToast} />
+          ? <SlEntityView key={activeEntity} showToast={showToast} username={user.username} showPrevMonth={prevMonthMap['sl'] ?? false} onTogglePrevMonth={() => togglePrevMonth('sl')} />
+          : <EntityView key={activeEntity} namespace={activeEntity} showToast={showToast} username={user.username} showPrevMonth={prevMonthMap[activeEntity] ?? false} onTogglePrevMonth={() => togglePrevMonth(activeEntity)} />
         }
       </Box>
 
@@ -200,15 +244,19 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
 
 interface DsmEntityViewProps {
   showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+  username: string;
+  showPrevMonth: boolean;
+  onTogglePrevMonth: () => void;
 }
 
-function DsmEntityView({ showToast }: DsmEntityViewProps) {
+function DsmEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }: DsmEntityViewProps) {
   const dispatch = useAppDispatch();
   const activePeriod = useAppSelector((s) => s.ui.periods['dsm'] ?? 'MoM');
   const setActivePeriod = useCallback(
     (p: import('./types/pnl').PeriodView) => dispatch(setPeriod({ tab: 'dsm', period: p })),
     [dispatch],
   );
+  const prevMonthLabel = useMemo(() => getPrevMonthLabel(), []);
   const {
     months,
     updateMonthField,
@@ -216,7 +264,7 @@ function DsmEntityView({ showToast }: DsmEntityViewProps) {
     importMonths,
     displayData,
     computed,
-  } = useDsmState('dsm', activePeriod);
+  } = useDsmState('dsm', activePeriod, showPrevMonth);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -258,6 +306,10 @@ function DsmEntityView({ showToast }: DsmEntityViewProps) {
           onExport={handleExport}
           onImport={handleImport}
           onDownloadTemplate={handleDownloadTemplate}
+          showPrevMonth={showPrevMonth}
+          onTogglePrevMonth={onTogglePrevMonth}
+          prevMonthLabel={prevMonthLabel}
+          username={username}
         />
 
         <DsmKpiGrid data={combined} />
@@ -289,7 +341,7 @@ function DsmEntityView({ showToast }: DsmEntityViewProps) {
             fontFamily: '"Instrument Serif", serif',
           }}
         >
-          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+          Values in {PESO} Philippine Peso · Ledger Console v1.1 (May 2026)
         </Typography>
       </Stack>
 
@@ -306,10 +358,14 @@ function DsmEntityView({ showToast }: DsmEntityViewProps) {
 
 interface KpsEntityViewProps {
   showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+  username: string;
+  showPrevMonth: boolean;
+  onTogglePrevMonth: () => void;
 }
 
-function KpsEntityView({ showToast }: KpsEntityViewProps) {
-  const { months, selectedId, setSelectedId, selectedMonth, scores, updateMonthField, resetMonth, importMonths } = useKpsState('kps');
+function KpsEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }: KpsEntityViewProps) {
+  const prevMonthLabel = useMemo(() => getPrevMonthLabel(), []);
+  const { months, selectedId, setSelectedId, selectedMonth, scores, updateMonthField, resetMonth, importMonths } = useKpsState('kps', showPrevMonth);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleExport = useCallback(async () => {
@@ -348,6 +404,10 @@ function KpsEntityView({ showToast }: KpsEntityViewProps) {
           onExport={handleExport}
           onImport={handleImport}
           onDownloadTemplate={handleDownloadTemplate}
+          showPrevMonth={showPrevMonth}
+          onTogglePrevMonth={onTogglePrevMonth}
+          prevMonthLabel={prevMonthLabel}
+          username={username}
         />
 
         <KpsKpiGrid scores={scores} month={selectedMonth} />
@@ -361,7 +421,7 @@ function KpsEntityView({ showToast }: KpsEntityViewProps) {
         />
 
         <Typography sx={{ textAlign: 'center', fontSize: 11, color: 'text.secondary', py: 1, fontStyle: 'italic', fontFamily: '"Instrument Serif", serif' }}>
-          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+          Values in {PESO} Philippine Peso · Ledger Console v1.1 (May 2026)
         </Typography>
       </Stack>
 
@@ -380,10 +440,14 @@ function KpsEntityView({ showToast }: KpsEntityViewProps) {
 
 interface SlEntityViewProps {
   showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+  username: string;
+  showPrevMonth: boolean;
+  onTogglePrevMonth: () => void;
 }
 
-function SlEntityView({ showToast }: SlEntityViewProps) {
-  const { months, updateMonthField, resetMonth, importMonths } = useSlState('sl');
+function SlEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }: SlEntityViewProps) {
+  const prevMonthLabel = useMemo(() => getPrevMonthLabel(), []);
+  const { months, updateMonthField, resetMonth, importMonths } = useSlState('sl', showPrevMonth);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const availableYears = useMemo(
@@ -435,6 +499,10 @@ function SlEntityView({ showToast }: SlEntityViewProps) {
           onExport={handleExport}
           onImport={handleImport}
           onDownloadTemplate={handleDownloadTemplate}
+          showPrevMonth={showPrevMonth}
+          onTogglePrevMonth={onTogglePrevMonth}
+          prevMonthLabel={prevMonthLabel}
+          username={username}
         />
 
         <SlSummaryTable
@@ -460,7 +528,7 @@ function SlEntityView({ showToast }: SlEntityViewProps) {
         </Box>
 
         <Typography sx={{ textAlign: 'center', fontSize: 11, color: 'text.secondary', py: 1, fontStyle: 'italic', fontFamily: '"Instrument Serif", serif' }}>
-          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+          Values in {PESO} Philippine Peso · Ledger Console v1.1 (May 2026)
         </Typography>
       </Stack>
 
@@ -478,15 +546,19 @@ function SlEntityView({ showToast }: SlEntityViewProps) {
 interface EntityViewProps {
   namespace: EntityTab;
   showToast: (msg: string, severity?: 'success' | 'info' | 'warning') => void;
+  username: string;
+  showPrevMonth: boolean;
+  onTogglePrevMonth: () => void;
 }
 
-function EntityView({ namespace, showToast }: EntityViewProps) {
+function EntityView({ namespace, showToast, username, showPrevMonth, onTogglePrevMonth }: EntityViewProps) {
   const dispatch = useAppDispatch();
   const activePeriod = useAppSelector((s) => s.ui.periods[namespace] ?? 'MoM');
   const setActivePeriod = useCallback(
     (p: import('./types/pnl').PeriodView) => dispatch(setPeriod({ tab: namespace, period: p })),
     [dispatch, namespace],
   );
+  const prevMonthLabel = useMemo(() => getPrevMonthLabel(), []);
   const {
     months,
     updateMonthField,
@@ -494,7 +566,7 @@ function EntityView({ namespace, showToast }: EntityViewProps) {
     importMonths,
     displayData,
     computed,
-  } = usePnlState(namespace, activePeriod);
+  } = usePnlState(namespace, activePeriod, showPrevMonth);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -536,6 +608,10 @@ function EntityView({ namespace, showToast }: EntityViewProps) {
           onExport={handleExport}
           onImport={handleImport}
           onDownloadTemplate={handleDownloadTemplate}
+          showPrevMonth={showPrevMonth}
+          onTogglePrevMonth={onTogglePrevMonth}
+          prevMonthLabel={prevMonthLabel}
+          username={username}
         />
 
         <KpiGrid data={combined} />
@@ -593,7 +669,7 @@ function EntityView({ namespace, showToast }: EntityViewProps) {
             fontFamily: '"Instrument Serif", serif',
           }}
         >
-          Values in {PESO} Philippine Peso · Ledger Console v1.0 (May 2026)
+          Values in {PESO} Philippine Peso · Ledger Console v1.1 (May 2026)
         </Typography>
       </Stack>
 
