@@ -25,7 +25,9 @@
       "Bash(Test-Path \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\store\\\\uiSlice.ts\")",
       "Bash(npm run *)",
       "Bash(del src\\\\utils\\\\generateReport.ts src\\\\components\\\\GenerateReportDialog.tsx)",
-      "Bash(Remove-Item \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\utils\\\\generateReport.ts\", \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\components\\\\GenerateReportDialog.tsx\" -Force)"
+      "Bash(Remove-Item \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\utils\\\\generateReport.ts\", \"c:\\\\Test\\\\ledger-console\\\\ledger-console\\\\src\\\\components\\\\GenerateReportDialog.tsx\" -Force)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Test\\\\ledger-console\\\\ledger-console\" -Recurse -Directory -Depth 2)",
+      "Bash(Format-Table -AutoSize)"
     ],
     "additionalDirectories": [
       "c:\\Users\\JBONCAJES\\.claude\\projects\\c--Test-ledger-console-ledger-console\\memory"

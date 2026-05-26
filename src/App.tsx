@@ -154,6 +154,7 @@ function Dashboard({ user, darkMode, onToggleDark, onLogout }: DashboardProps) {
           user={user}
           onLogoutRequest={() => setLogoutOpen(true)}
           onMenuClick={() => setMobileSidebarOpen(true)}
+          activeLabel={({ soo: 'SoO', dsm: 'DSM', kps: 'KPS', sl: 'SL (in PhP)' } as Record<string, string>)[activeEntity]}
         />
 
         {/* Re-mount view on tab switch so each entity gets fresh state */}

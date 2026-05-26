@@ -41,7 +41,7 @@ function DonutSvg({
       <Box
         component="svg"
         viewBox="0 0 210 210"
-        sx={{ width: 200, height: 200, display: 'block', opacity: isCurrent ? 1 : 0.55 }}
+        sx={{ width: '100%', maxWidth: 200, height: 'auto', display: 'block', opacity: isCurrent ? 1 : 0.55 }}
       >
         <circle cx={CX} cy={CY} r={R} fill="none"
           stroke={alpha(inkColors.ink, 0.07)} strokeWidth={SW} />

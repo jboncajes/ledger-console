@@ -4,7 +4,6 @@ import {
   Button,
   ButtonGroup,
   Chip,
-  IconButton,
   Stack,
   Tooltip,
   Typography,
@@ -103,13 +102,16 @@ export function PageHead({
     },
   } as const;
 
-  const iconOnlySx = {
-    width: 36,
-    height: 36,
+  const mobileCtrlSx = {
+    py: 0.75,
+    px: 1.25,
     background: colors.panel,
     border: `1px solid ${colors.border}`,
     borderRadius: '10px',
+    fontSize: 12,
     color: 'text.primary',
+    minWidth: 'auto',
+    backdropFilter: 'blur(20px)',
     '&:hover': { background: colors.panelStrong, borderColor: colors.borderStrong },
   } as const;
 
@@ -245,54 +247,48 @@ export function PageHead({
         )}
 
         {isMobile ? (
-          /* Icon-only buttons on mobile */
+          /* Compact labeled buttons on mobile */
           <>
-            <Tooltip title="Download template" arrow>
-              <IconButton sx={iconOnlySx} onClick={onDownloadTemplate}>
-                <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Import Excel" arrow>
-              <IconButton sx={iconOnlySx} onClick={() => fileInputRef.current?.click()}>
-                <FileUploadRoundedIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Export Excel" arrow>
-              <IconButton sx={iconOnlySx} onClick={onExport}>
-                <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
+            <Button startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 14 }} />} sx={mobileCtrlSx} onClick={onDownloadTemplate}>
+              Template
+            </Button>
+            <Button startIcon={<FileUploadRoundedIcon sx={{ fontSize: 14 }} />} sx={mobileCtrlSx} onClick={() => fileInputRef.current?.click()}>
+              Import
+            </Button>
+            <Button startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 14 }} />} sx={mobileCtrlSx} onClick={onExport}>
+              Export
+            </Button>
             {onTogglePrevMonth && prevMonthLabel && (
-              <Tooltip title={`${showPrevMonth ? 'Hide' : 'Include'} ${prevMonthLabel}`} arrow>
-                <IconButton
-                  onClick={onTogglePrevMonth}
-                  sx={{
-                    ...iconOnlySx,
-                    ...(showPrevMonth && {
-                      background: alpha(colors.accent, 0.12),
-                      borderColor: alpha(colors.accent, 0.4),
-                      color: colors.accent,
-                      '&:hover': { background: alpha(colors.accent, 0.2), borderColor: alpha(colors.accent, 0.5) },
-                    }),
-                  }}
-                >
-                  <CalendarMonthRoundedIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Tooltip>
+              <Button
+                startIcon={<CalendarMonthRoundedIcon sx={{ fontSize: 14 }} />}
+                onClick={onTogglePrevMonth}
+                sx={{
+                  ...mobileCtrlSx,
+                  ...(showPrevMonth && {
+                    background: alpha(colors.accent, 0.12),
+                    borderColor: alpha(colors.accent, 0.4),
+                    color: colors.accent,
+                    '&:hover': { background: alpha(colors.accent, 0.2), borderColor: alpha(colors.accent, 0.5) },
+                  }),
+                }}
+              >
+                {prevMonthLabel.split(' ')[0].slice(0, 3)}
+              </Button>
             )}
-            <IconButton
+            <Button
+              startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />}
               onClick={onOpenDrawer}
               sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '10px',
+                ...mobileCtrlSx,
                 background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`,
+                border: 'none',
                 color: '#fff',
-                '&:hover': { background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`, filter: 'brightness(1.05)' },
+                fontWeight: 600,
+                '&:hover': { background: `linear-gradient(135deg, ${colors.accent}, ${colors.accent2})`, filter: 'brightness(1.05)', border: 'none' },
               }}
             >
-              <AddRoundedIcon sx={{ fontSize: 20 }} />
-            </IconButton>
+              Input
+            </Button>
           </>
         ) : (
           /* Full-label buttons on sm+ */

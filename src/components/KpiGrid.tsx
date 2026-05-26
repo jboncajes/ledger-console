@@ -241,15 +241,23 @@ function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior'
 function AreaChart({ id, prior, curr, color }: { id: string; prior: number; curr: number; color: string }) {
   const agId = `${id}-a`;
 
-  const isPositive = curr >= 0;
-  const baseline = isPositive ? 96 : 16;
   const maxAbs = Math.max(Math.abs(prior), Math.abs(curr), 1);
-  const priorY = isPositive
-    ? 96 - (Math.abs(prior) / maxAbs) * 76
-    : 16 + (Math.abs(prior) / maxAbs) * 76;
-  const currY = isPositive
-    ? 96 - (Math.abs(curr) / maxAbs) * 76
-    : 16 + (Math.abs(curr) / maxAbs) * 76;
+  const mixedSigns = (prior < 0) !== (curr < 0);
+
+  let priorY: number, currY: number, baseline: number;
+  if (mixedSigns) {
+    baseline = 58;
+    priorY = 58 - (prior / maxAbs) * 42;
+    currY = 58 - (curr / maxAbs) * 42;
+  } else if (curr >= 0) {
+    baseline = 96;
+    priorY = 96 - (Math.abs(prior) / maxAbs) * 76;
+    currY = 96 - (Math.abs(curr) / maxAbs) * 76;
+  } else {
+    baseline = 16;
+    priorY = 16 + (Math.abs(prior) / maxAbs) * 76;
+    currY = 16 + (Math.abs(curr) / maxAbs) * 76;
+  }
 
   const path = `M 0 ${baseline} L 0 ${priorY} C 80 ${priorY} 180 ${currY} 260 ${currY} L 260 ${baseline} Z`;
   const line = `M 0 ${priorY} C 80 ${priorY} 180 ${currY} 260 ${currY}`;

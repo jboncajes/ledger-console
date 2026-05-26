@@ -112,9 +112,9 @@ export function KpsScorecard({ months, selectedId, onSelectMonth, scores, inputs
       </Stack>
 
       {/* Table header */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 110px 44px 80px 68px', gap: 1, px: 1.5, pb: 1, borderBottom: `2px solid ${colors.border}` }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 80px 60px', sm: '1fr 110px 44px 80px 68px' }, gap: 1, px: 1.5, pb: 1, borderBottom: `2px solid ${colors.border}` }}>
         {['Financial Parameter', 'Standard', 'Max', 'PL', 'Score'].map((h) => (
-          <Typography key={h} sx={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '1.2px', color: colors.inkSoft, fontWeight: 600, textAlign: h === 'Max' || h === 'Score' ? 'center' : 'left' }}>{h}</Typography>
+          <Typography key={h} sx={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '1.2px', color: colors.inkSoft, fontWeight: 600, textAlign: h === 'Max' || h === 'Score' ? 'center' : 'left', display: (h === 'Standard' || h === 'Max') ? { xs: 'none', sm: 'block' } : 'block' }}>{h}</Typography>
         ))}
       </Box>
 
@@ -143,10 +143,10 @@ export function KpsScorecard({ months, selectedId, onSelectMonth, scores, inputs
           const valueColor = isMet ? colors.accent2 : isZero ? colors.danger : '#F59E0B';
 
           return (
-            <Box key={idx} sx={{ display: 'grid', gridTemplateColumns: '1fr 110px 44px 80px 68px', gap: 1, px: 1.5, py: 1, pl: `${(row.indent ?? 0) * 16 + 6}px`, alignItems: 'center', borderRadius: '8px', transition: 'background 0.15s', '&:hover': { background: alpha(colors.ink, 0.025) } }}>
+            <Box key={idx} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 80px 60px', sm: '1fr 110px 44px 80px 68px' }, gap: 1, px: 1.5, py: 1, pl: `${(row.indent ?? 0) * 16 + 6}px`, alignItems: 'center', borderRadius: '8px', transition: 'background 0.15s', '&:hover': { background: alpha(colors.ink, 0.025) } }}>
               <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{row.label}</Typography>
-              <Typography sx={{ fontSize: 12, color: colors.inkSoft }}>{row.standard}</Typography>
-              <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim, textAlign: 'center' }}>{row.maxScore}</Typography>
+              <Typography sx={{ fontSize: 12, color: colors.inkSoft, display: { xs: 'none', sm: 'block' } }}>{row.standard}</Typography>
+              <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim, textAlign: 'center', display: { xs: 'none', sm: 'block' } }}>{row.maxScore}</Typography>
               <Typography sx={{ fontSize: 12.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, color: valueColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {plValue}
               </Typography>

@@ -159,7 +159,7 @@ export function MarginComposition({ data }: MarginCompositionProps) {
         slotProps={tooltipSx(colors)}
       >
         <Stack alignItems="center" justifyContent="center" sx={{ py: 2, cursor: 'default' }}>
-          <svg width="220" height="220" viewBox="0 0 220 220">
+          <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto', display: 'block' }}>
             <defs>
               <linearGradient id="g-arc1" x1="0" x2="1" y1="0" y2="1">
                 <stop offset="0%" stopColor={colors.accent} />

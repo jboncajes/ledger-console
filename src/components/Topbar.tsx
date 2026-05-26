@@ -25,9 +25,10 @@ interface TopbarProps {
   user: AuthUser;
   onLogoutRequest: () => void;
   onMenuClick: () => void;
+  activeLabel?: string;
 }
 
-export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest, onMenuClick }: TopbarProps) {
+export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest, onMenuClick, activeLabel }: TopbarProps) {
   const colors = useColors();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
@@ -69,7 +70,7 @@ export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest, onMenuCl
         <MenuRoundedIcon sx={{ fontSize: 20 }} />
       </IconButton>
 
-      {/* App name — mobile only (sidebar hidden) */}
+      {/* App name + active tab — mobile only (sidebar hidden) */}
       <Stack
         direction="row"
         alignItems="center"
@@ -77,9 +78,19 @@ export function Topbar({ darkMode, onToggleDark, user, onLogoutRequest, onMenuCl
         sx={{ display: { xs: 'flex', md: 'none' }, flex: 1, overflow: 'hidden' }}
       >
         <LedgerLogo size={22} />
-        <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 15, letterSpacing: '0.1px', whiteSpace: 'nowrap' }}>
-          Ledger Console
-        </Typography>
+        <Stack direction="row" alignItems="baseline" gap={0.5} sx={{ overflow: 'hidden' }}>
+          <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 15, letterSpacing: '0.1px', whiteSpace: 'nowrap' }}>
+            Ledger Console
+          </Typography>
+          {activeLabel && (
+            <>
+              <Typography sx={{ fontSize: 13, color: 'text.disabled', whiteSpace: 'nowrap' }}>/</Typography>
+              <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: 15, letterSpacing: '0.1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {activeLabel}
+              </Typography>
+            </>
+          )}
+        </Stack>
       </Stack>
 
       {/* Right-side controls */}

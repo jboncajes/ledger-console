@@ -7,7 +7,7 @@ export function useCopyCard() {
   const colors = useColors();
   const cardRef = useRef<HTMLDivElement>(null);
   const copyBtnRef = useRef<HTMLButtonElement>(null);
-  const [hovered, setHovered] = useState(false);
+  const [hovered, setHovered] = useState(() => typeof window !== 'undefined' && 'ontouchstart' in window);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async (e: React.MouseEvent) => {

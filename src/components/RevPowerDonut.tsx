@@ -82,8 +82,8 @@ export function RevPowerDonut({ data }: Props) {
 
       <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" gap={3} sx={{ mt: 2.5 }}>
         {/* Dual-ring SVG donut */}
-        <Box sx={{ flexShrink: 0 }}>
-          <Box component="svg" viewBox="0 0 250 250" sx={{ width: 250, height: 250, display: 'block' }}>
+        <Box sx={{ flexShrink: 0, width: { xs: '100%', sm: 250 }, maxWidth: 250 }}>
+          <Box component="svg" viewBox="0 0 250 250" sx={{ width: '100%', height: 'auto', display: 'block' }}>
             {/* Background tracks */}
             <circle cx={cx} cy={cy} r={RO} fill="none" stroke={alpha(colors.ink, 0.07)} strokeWidth={SW} />
             <circle cx={cx} cy={cy} r={RI} fill="none" stroke={alpha(colors.ink, 0.07)} strokeWidth={SW} />
