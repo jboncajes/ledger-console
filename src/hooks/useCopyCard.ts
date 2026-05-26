@@ -3,6 +3,15 @@ import type React from 'react';
 import html2canvas from 'html2canvas';
 import { useColors } from '../theme/theme';
 
+function downloadBlob(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ledger-card-${Date.now()}.png`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function useCopyCard() {
   const colors = useColors();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -56,7 +65,21 @@ export function useCopyCard() {
       const blob = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'),
       );
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+
+      const canWriteClipboard =
+        typeof navigator.clipboard?.write === 'function' &&
+        typeof ClipboardItem !== 'undefined';
+
+      if (canWriteClipboard) {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        } catch {
+          downloadBlob(blob);
+        }
+      } else {
+        downloadBlob(blob);
+      }
+
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {

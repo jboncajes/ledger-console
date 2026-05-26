@@ -210,7 +210,7 @@ function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior'
       {/* Prior bar */}
       <rect x="22" y={BASE - priorH} width="96" height={priorH} rx="7"
         fill={`url(#${pgId})`} />
-      <text x="70" y={BASE - priorH - 7} textAnchor="middle"
+      <text x="70" y={Math.max(BASE - priorH - 7, 14)} textAnchor="middle"
         fontFamily="JetBrains Mono, monospace" fontSize="14" fill={priorColor} opacity="0.85">
         {fmtMillions(prior)}M
       </text>
@@ -222,7 +222,7 @@ function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior'
       {/* Current bar */}
       <rect x="142" y={BASE - currH} width="96" height={currH} rx="7"
         fill={`url(#${cgId})`} />
-      <text x="190" y={BASE - currH - 7} textAnchor="middle"
+      <text x="190" y={Math.max(BASE - currH - 7, 14)} textAnchor="middle"
         fontFamily="JetBrains Mono, monospace" fontSize="14" fill={currColor}>
         {fmtMillions(curr)}M
       </text>

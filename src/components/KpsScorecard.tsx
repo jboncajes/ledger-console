@@ -163,22 +163,30 @@ export function KpsScorecard({ months, selectedId, onSelectMonth, scores, inputs
         <Stack gap={1}>
           {[
             { label: 'Base Score', value: scores.baseTotal, max: 40, color: colors.accent },
-            { label: 'Incentive Points (Advance 2 Qtrs Amortization)', value: scores.incentivePoints, max: 2, color: colors.accent3 ?? colors.accent },
+            { label: 'Incentive Points', value: scores.incentivePoints, max: 2, color: scores.incentivePoints > 0 ? colors.accent3 ?? colors.accent : colors.inkDim },
           ].map((r) => (
-            <Box key={r.label} sx={{ display: 'grid', gridTemplateColumns: '1fr 56px 80px', gap: 1, px: 1.5, alignItems: 'center' }}>
+            <Box key={r.label} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 80px 60px', sm: '1fr 110px 44px 80px 68px' }, gap: 1, px: 1.5, alignItems: 'center' }}>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary' }}>{r.label}</Typography>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }} />
               <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim, textAlign: 'center' }}>{r.max}</Typography>
-              <ScoreBadge score={r.value} max={r.max} />
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }} />
+              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <ScoreBadge score={r.value} max={r.max} />
+              </Box>
             </Box>
           ))}
 
           {/* Grand total */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 56px 80px', gap: 1, px: 1.5, py: 1.25, mt: 0.5, borderRadius: '10px', background: alpha(scores.totalPoints >= 35 ? colors.accent2 : scores.totalPoints >= 25 ? '#F59E0B' : colors.danger, 0.08), border: `1px solid ${alpha(scores.totalPoints >= 35 ? colors.accent2 : '#F59E0B', 0.2)}`, alignItems: 'center' }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 80px 60px', sm: '1fr 110px 44px 80px 68px' }, gap: 1, px: 1.5, py: 1.25, mt: 0.5, borderRadius: '10px', background: alpha(scores.totalPoints >= 35 ? colors.accent2 : scores.totalPoints >= 25 ? '#F59E0B' : colors.danger, 0.08), border: `1px solid ${alpha(scores.totalPoints >= 35 ? colors.accent2 : '#F59E0B', 0.2)}`, alignItems: 'center' }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700 }}>TOTAL POINTS</Typography>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }} />
             <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim, textAlign: 'center' }}>40</Typography>
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1.25, py: 0.4, borderRadius: '8px', background: alpha(scores.totalPoints >= 35 ? colors.accent2 : scores.totalPoints >= 25 ? '#F59E0B' : colors.danger, 0.12), color: scores.totalPoints >= 35 ? colors.accent2 : scores.totalPoints >= 25 ? '#F59E0B' : colors.danger, fontSize: 14, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace' }}>
-              {scores.totalPoints}
-              <Box component="span" sx={{ opacity: 0.55, fontSize: 12, fontWeight: 600 }}>/40</Box>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }} />
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1.25, py: 0.4, borderRadius: '8px', background: alpha(scores.totalPoints >= 35 ? colors.accent2 : scores.totalPoints >= 25 ? '#F59E0B' : colors.danger, 0.12), color: scores.totalPoints >= 35 ? colors.accent2 : scores.totalPoints >= 25 ? '#F59E0B' : colors.danger, fontSize: 14, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace' }}>
+                {scores.totalPoints}
+                <Box component="span" sx={{ opacity: 0.55, fontSize: 12, fontWeight: 600 }}>/40</Box>
+              </Box>
             </Box>
           </Box>
         </Stack>

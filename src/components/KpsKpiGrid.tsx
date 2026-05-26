@@ -24,7 +24,7 @@ function Arc({ value, max, color }: { value: number; max: number; color: string 
   const circumference = Math.PI * R; // half-circle
   const dash = pct * circumference;
   return (
-    <svg width="110" height="60" viewBox="0 0 100 56">
+    <svg width="110" height="65" viewBox="0 0 100 62">
       <path
         d={`M ${C - R},${C} A ${R},${R} 0 0 1 ${C + R},${C}`}
         fill="none" stroke={color} strokeOpacity="0.12" strokeWidth={SW}
