@@ -21,7 +21,7 @@ export interface MonthRecord {
   inputs: PnlInputs;
 }
 
-export type PeriodView = 'MoM' | 'QoQ' | 'YTD' | 'YoY';
+export type PeriodView = 'MoM' | 'QoQ' | 'YTD' | 'YoY' | 'Month';
 
 export interface PnlPeriod {
   prior: PnlInputs;

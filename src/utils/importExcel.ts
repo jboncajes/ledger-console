@@ -29,7 +29,8 @@ function parseMonthLabel(raw: string): { id: string; year: number; month: number
   const month = MONTH_INDEX[parts[0].toLowerCase()];
   const year = parseInt(parts[1], 10);
   if (!month || isNaN(year)) return null;
-  return { id: `${year}-${String(month).padStart(2, '0')}`, year, month, label: raw.trim() };
+  const LONG = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return { id: `${year}-${String(month).padStart(2, '0')}`, year, month, label: `${LONG[month - 1]} ${year}` };
 }
 
 function cellNum(value: ExcelJS.CellValue): number {

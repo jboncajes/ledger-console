@@ -131,67 +131,95 @@ export function OmDonut({ data }: Props) {
       <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: { xs: 18, sm: 22 }, letterSpacing: '-0.3px' }}>
         Operating and Maintenance Composition
       </Typography>
-      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>
-        Component share · {priorLabel} vs {currLabel}
-      </Typography>
+      {(() => {
+        const singleMonth = !priorLabel;
+        return (
+          <>
+            <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>
+              {singleMonth ? `Component share · ${currLabel}` : `Component share · ${priorLabel} vs ${currLabel}`}
+            </Typography>
 
-      {/* Side-by-side donuts */}
-      <Stack direction="row" justifyContent="center" gap={{ xs: 2, sm: 4 }} sx={{ mt: 2.5 }}>
-        <DonutSvg segs={priorSegs} colors={segColors} total={omPrior}
-          label={priorLabel} isCurrent={false} inkColors={inkColors} />
-        <DonutSvg segs={currSegs} colors={segColors} total={omCurr}
-          label={currLabel} isCurrent inkColors={inkColors} />
-      </Stack>
-
-      {/* Comparison legend */}
-      <Stack gap={1.25} sx={{ mt: 2.5, pt: 2, borderTop: `1px solid ${colors.border}` }}>
-        {/* Column headers */}
-        <Stack direction="row" alignItems="center">
-          <Box sx={{ flex: 1 }} />
-          <Typography sx={{ fontSize: 10.5, color: colors.inkSoft, width: 46, textAlign: 'right' }}>
-            {priorLabel.split(' ')[0]}
-          </Typography>
-          <Box sx={{ width: 20 }} />
-          <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: colors.ink, width: 46, textAlign: 'right' }}>
-            {currLabel.split(' ')[0]}
-          </Typography>
-          <Box sx={{ width: 80 }} />
-        </Stack>
-
-        {SEGMENTS.map((seg, i) => {
-          const priorPct = omPrior > 0 ? (priorVals[i] / omPrior) * 100 : 0;
-          const currPct  = omCurr  > 0 ? (currVals[i]  / omCurr)  * 100 : 0;
-          const delta    = currVals[i] - priorVals[i];
-          const isGood   = delta <= 0;
-          const deltaColor = delta === 0 ? colors.inkSoft : isGood ? colors.accent2 : colors.danger;
-
-          return (
-            <Stack key={seg.key} direction="row" alignItems="center" gap={0}>
-              <Stack direction="row" alignItems="center" gap={0.75} sx={{ flex: 1, minWidth: 0 }}>
-                <Box sx={{ width: 9, height: 9, borderRadius: '3px', background: seg.color, flexShrink: 0 }} />
-                <Typography sx={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {seg.label}
-                </Typography>
+            {/* Donut(s) */}
+            {singleMonth ? (
+              <Stack alignItems="center" sx={{ mt: 2.5 }}>
+                <Box sx={{ maxWidth: 200, width: '100%' }}>
+                  <DonutSvg segs={currSegs} colors={segColors} total={omCurr}
+                    label={currLabel} isCurrent inkColors={inkColors} />
+                </Box>
               </Stack>
-              <Typography sx={{ fontSize: 11.5, color: colors.inkSoft, fontFamily: '"JetBrains Mono", monospace', width: 46, textAlign: 'right' }}>
-                {priorPct.toFixed(1)}%
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: colors.borderStrong, width: 20, textAlign: 'center' }}>→</Typography>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: '"JetBrains Mono", monospace', width: 46, textAlign: 'right' }}>
-                {currPct.toFixed(1)}%
-              </Typography>
-              <Box sx={{
-                ml: 1, px: 0.75, py: 0.1, borderRadius: '5px', flexShrink: 0, width: 72,
-                background: alpha(deltaColor, 0.12), color: deltaColor,
-                fontSize: 10.5, fontWeight: 600, fontFamily: '"JetBrains Mono", monospace',
-                textAlign: 'center',
-              }}>
-                {delta === 0 ? '—' : `${delta > 0 ? '▲' : '▼'} ${PESO}${fmtMillions(Math.abs(delta))}M`}
-              </Box>
+            ) : (
+              <Stack direction="row" justifyContent="center" gap={{ xs: 2, sm: 4 }} sx={{ mt: 2.5 }}>
+                <DonutSvg segs={priorSegs} colors={segColors} total={omPrior}
+                  label={priorLabel} isCurrent={false} inkColors={inkColors} />
+                <DonutSvg segs={currSegs} colors={segColors} total={omCurr}
+                  label={currLabel} isCurrent inkColors={inkColors} />
+              </Stack>
+            )}
+
+            {/* Legend */}
+            <Stack gap={1.25} sx={{ mt: 2.5, pt: 2, borderTop: `1px solid ${colors.border}` }}>
+              {!singleMonth && (
+                <Stack direction="row" alignItems="center">
+                  <Box sx={{ flex: 1 }} />
+                  <Typography sx={{ fontSize: 10.5, color: colors.inkSoft, width: 46, textAlign: 'right' }}>
+                    {priorLabel.split(' ')[0]}
+                  </Typography>
+                  <Box sx={{ width: 20 }} />
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: colors.ink, width: 46, textAlign: 'right' }}>
+                    {currLabel.split(' ')[0]}
+                  </Typography>
+                  <Box sx={{ width: 80 }} />
+                </Stack>
+              )}
+
+              {SEGMENTS.map((seg, i) => {
+                const priorPct = omPrior > 0 ? (priorVals[i] / omPrior) * 100 : 0;
+                const currPct  = omCurr  > 0 ? (currVals[i]  / omCurr)  * 100 : 0;
+                const delta    = currVals[i] - priorVals[i];
+                const isGood   = delta <= 0;
+                const deltaColor = delta === 0 ? colors.inkSoft : isGood ? colors.accent2 : colors.danger;
+
+                return (
+                  <Stack key={seg.key} direction="row" alignItems="center" gap={0}>
+                    <Stack direction="row" alignItems="center" gap={0.75} sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ width: 9, height: 9, borderRadius: '3px', background: seg.color, flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {seg.label}
+                      </Typography>
+                    </Stack>
+                    {!singleMonth && (
+                      <>
+                        <Typography sx={{ fontSize: 11.5, color: colors.inkSoft, fontFamily: '"JetBrains Mono", monospace', width: 46, textAlign: 'right' }}>
+                          {priorPct.toFixed(1)}%
+                        </Typography>
+                        <Typography sx={{ fontSize: 11, color: colors.borderStrong, width: 20, textAlign: 'center' }}>→</Typography>
+                      </>
+                    )}
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: '"JetBrains Mono", monospace', width: 46, textAlign: 'right' }}>
+                      {currPct.toFixed(1)}%
+                    </Typography>
+                    {!singleMonth && (
+                      <Box sx={{
+                        ml: 1, px: 0.75, py: 0.1, borderRadius: '5px', flexShrink: 0, width: 72,
+                        background: alpha(deltaColor, 0.12), color: deltaColor,
+                        fontSize: 10.5, fontWeight: 600, fontFamily: '"JetBrains Mono", monospace',
+                        textAlign: 'center',
+                      }}>
+                        {delta === 0 ? '—' : `${delta > 0 ? '▲' : '▼'} ${PESO}${fmtMillions(Math.abs(delta))}M`}
+                      </Box>
+                    )}
+                    {singleMonth && (
+                      <Typography sx={{ ml: 1, fontSize: 11.5, fontFamily: '"JetBrains Mono", monospace', color: colors.inkSoft, width: 72, textAlign: 'right' }}>
+                        {PESO}{fmtMillions(currVals[i])}M
+                      </Typography>
+                    )}
+                  </Stack>
+                );
+              })}
             </Stack>
-          );
-        })}
-      </Stack>
+          </>
+        );
+      })()}
     </Box>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, IconButton, Stack, Typography, alpha } from '@mui/material';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
@@ -7,11 +7,11 @@ import { useColors } from '../theme/theme';
 import { SL_CAP_PCT } from '../utils/sl';
 import { useCopyCard } from '../hooks/useCopyCard';
 
-interface Props { months: SlMonthRecord[] }
+interface Props { months: SlMonthRecord[]; defaultYear?: number }
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export function SlMfsrTrend({ months }: Props) {
+export function SlMfsrTrend({ months, defaultYear }: Props) {
   const colors = useColors();
   const [hover, setHover] = useState<{ year: number; month: number } | null>(null);
   const { cardRef, copyBtnRef, hovered, setHovered, copied, handleCopy } = useCopyCard();
@@ -30,8 +30,15 @@ export function SlMfsrTrend({ months }: Props) {
   const allYears = [...byYear.keys()].sort();
   const latestYear = allYears[allYears.length - 1];
 
-  // Only latest year visible by default; previous years toggled individually
-  const [visibleYears, setVisibleYears] = useState<Set<number>>(() => new Set(latestYear ? [latestYear] : []));
+  const [visibleYears, setVisibleYears] = useState<Set<number>>(() => {
+    const initial = (defaultYear && allYears.includes(defaultYear)) ? defaultYear : latestYear;
+    return new Set(initial ? [initial] : []);
+  });
+
+  // Sync visible year when the summary table's selected year changes
+  useEffect(() => {
+    if (defaultYear) setVisibleYears(new Set([defaultYear]));
+  }, [defaultYear]);
 
   // Keep visibleYears in sync when months change (ensure latest year always exists)
   const activeYears = allYears.filter((y) => visibleYears.has(y));

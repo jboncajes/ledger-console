@@ -26,6 +26,7 @@ interface KpiCardProps {
   meterPct: number;
   meterColor?: 'primary' | 'warning' | 'success';
   delay: number;
+  singleMonth?: boolean;
 }
 
 function CardTooltip({ label, description }: { label: string; description: string }) {
@@ -39,7 +40,7 @@ function CardTooltip({ label, description }: { label: string; description: strin
 
 function KpiCard({
   label, curr, prior, description,
-  inverseGood, netMarginMode, chart, meterPct, meterColor = 'primary', delay,
+  inverseGood, netMarginMode, chart, meterPct, meterColor = 'primary', delay, singleMonth,
 }: KpiCardProps) {
   const colors = useColors();
   const { cardRef, copyBtnRef, hovered, setHovered, copied, handleCopy } = useCopyCard();
@@ -134,7 +135,7 @@ function KpiCard({
             ? <CheckRoundedIcon sx={{ fontSize: 13, color: colors.accent2 }} />
             : <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />}
         </IconButton>
-        <Typography sx={{ fontSize: 11.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 500, mb: 1.75 }}>
+        <Typography sx={{ fontSize: 11.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 500, mb: 1.75, minHeight: '3.2em' }}>
           {label}
         </Typography>
 
@@ -144,14 +145,16 @@ function KpiCard({
           <Box component="span" sx={{ fontSize: 28, color: 'text.secondary' }}>M</Box>
         </Box>
 
-        <Stack direction="row" alignItems="center" gap={1.25} sx={{ fontSize: 12, mb: 2.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, px: 0.9, py: 0.25, borderRadius: '6px', fontWeight: 600, fontSize: 11.5, fontFamily: '"JetBrains Mono", monospace', background: alpha(deltaColor, 0.12), color: deltaColor }}>
-            {deltaText}
-          </Box>
-          <Typography component="span" sx={{ color: colors.inkSoft, fontSize: 11.5 }}>
-            vs prior · {PESO}{fmtMillions(prior)}M
-          </Typography>
-        </Stack>
+        {!singleMonth && (
+          <Stack direction="row" alignItems="center" gap={1.25} sx={{ fontSize: 12, mb: 2.5 }}>
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, px: 0.9, py: 0.25, borderRadius: '6px', fontWeight: 600, fontSize: 11.5, fontFamily: '"JetBrains Mono", monospace', background: alpha(deltaColor, 0.12), color: deltaColor }}>
+              {deltaText}
+            </Box>
+            <Typography component="span" sx={{ color: colors.inkSoft, fontSize: 11.5 }}>
+              vs prior · {PESO}{fmtMillions(prior)}M
+            </Typography>
+          </Stack>
+        )}
 
         {/* Full-width chart area */}
         <Box sx={{ width: '100%', mb: 1.75 }}>{chart}</Box>
@@ -179,11 +182,12 @@ function chg(curr: number, prev: number): string {
 }
 
 /** Comparison bar chart — prior (left) vs current (right) */
-function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior', currLabel = 'Current' }: {
+function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior', currLabel = 'Current', singleMonth }: {
   id: string;
   prior: number; curr: number;
   priorColor: string; currColor: string;
   priorLabel?: string; currLabel?: string;
+  singleMonth?: boolean;
 }) {
   const pgId = `${id}-p`;
   const cgId = `${id}-c`;
@@ -193,6 +197,25 @@ function BarChart({ id, prior, curr, priorColor, currColor, priorLabel = 'Prior'
   const priorH = Math.max(4, (Math.abs(prior) / maxV) * BAR_H);
   const currH = Math.max(4, (Math.abs(curr) / maxV) * BAR_H);
   const BASE = 96;
+
+  if (singleMonth) {
+    return (
+      <svg width="100%" height="120" viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id={cgId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={currColor} stopOpacity="1" />
+            <stop offset="100%" stopColor={currColor} stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
+        <rect x="82" y={BASE - currH} width="96" height={currH} rx="7" fill={`url(#${cgId})`} />
+        <text x="130" y={Math.max(BASE - currH - 7, 14)} textAnchor="middle"
+          fontFamily="JetBrains Mono, monospace" fontSize="14" fill={currColor}>
+          {fmtMillions(curr)}M
+        </text>
+        <line x1="10" x2="250" y1={BASE} y2={BASE} stroke={currColor} strokeWidth="1.5" opacity="0.18" />
+      </svg>
+    );
+  }
 
   return (
     <svg width="100%" height="120" viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet">
@@ -293,6 +316,7 @@ export function KpiGrid({ data }: KpiGridProps) {
   const { prior, current } = data;
   const ci = data.inputs.current;
   const pi = data.inputs.prior;
+  const singleMonth = data.inputs.priorLabel === '';
 
   const powRatio = current.totalRev > 0 ? (ci.power / current.totalRev) * 100 : 0;
 
@@ -332,38 +356,38 @@ export function KpiGrid({ data }: KpiGridProps) {
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, '@media (max-width: 1200px)': { gridTemplateColumns: 'repeat(2, 1fr)' }, '@media (max-width: 700px)': { gridTemplateColumns: '1fr' } }}>
-      <KpiCard
+      <KpiCard singleMonth={singleMonth}
         label="Total Operating Revenue"
         curr={current.totalRev} prior={prior.totalRev}
         description={torDesc}
-        chart={<BarChart id="tor" prior={prior.totalRev} curr={current.totalRev} priorColor={colors.accent} currColor={colors.accent} />}
+        chart={<BarChart id="tor" prior={prior.totalRev} curr={current.totalRev} priorColor={colors.accent} currColor={colors.accent} singleMonth={singleMonth} />}
         meterPct={(current.totalRev / 350_000_000) * 100}
         delay={0.05}
       />
 
-      <KpiCard
+      <KpiCard singleMonth={singleMonth}
         label="Total Power Purchased"
         curr={ci.power} prior={pi.power}
         inverseGood
         description={powDesc}
-        chart={<BarChart id="pow" prior={pi.power} curr={ci.power} priorColor={colors.accent2} currColor={colors.accent2} />}
+        chart={<BarChart id="pow" prior={pi.power} curr={ci.power} priorColor={colors.accent2} currColor={colors.accent2} singleMonth={singleMonth} />}
         meterPct={(ci.power / 250_000_000) * 100}
         meterColor="success"
         delay={0.1}
       />
 
-      <KpiCard
+      <KpiCard singleMonth={singleMonth}
         label="Total Operating and Maintenance Expenses"
         curr={current.om} prior={prior.om}
         inverseGood
         description={omDesc}
-        chart={<BarChart id="om" prior={prior.om} curr={current.om} priorColor={colors.accent3} currColor={colors.accent3} />}
+        chart={<BarChart id="om" prior={prior.om} curr={current.om} priorColor={colors.accent3} currColor={colors.accent3} singleMonth={singleMonth} />}
         meterPct={(current.om / 50_000_000) * 100}
         meterColor="warning"
         delay={0.15}
       />
 
-      <KpiCard
+      <KpiCard singleMonth={singleMonth}
         label="Net Margin"
         curr={current.netMargin} prior={prior.netMargin}
         netMarginMode

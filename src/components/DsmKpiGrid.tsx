@@ -10,10 +10,11 @@ const rise = keyframes`
 
 interface Props { data: DsmPeriodComputed; }
 
-function BarChart({ prior, curr, priorColor, currColor, priorLabel, currLabel }: {
+function BarChart({ prior, curr, priorColor, currColor, priorLabel, currLabel, singleMonth }: {
   prior: number; curr: number;
   priorColor: string; currColor: string;
   priorLabel: string; currLabel: string;
+  singleMonth?: boolean;
 }) {
   const maxV  = Math.max(Math.abs(prior), Math.abs(curr), 1);
   const BAR_H = 80, BASE = 96;
@@ -21,6 +22,23 @@ function BarChart({ prior, curr, priorColor, currColor, priorLabel, currLabel }:
   const cH = Math.max(4, (Math.abs(curr)  / maxV) * BAR_H);
   const pgId = `dsm-p-${priorColor}`;
   const cgId = `dsm-c-${currColor}`;
+
+  if (singleMonth) {
+    return (
+      <svg width="100%" height="120" viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id={cgId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={currColor} stopOpacity="1" />
+            <stop offset="100%" stopColor={currColor} stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
+        <rect x="82" y={BASE - cH} width="96" height={cH} rx="7" fill={`url(#${cgId})`} />
+        <text x="130" y={Math.max(BASE - cH - 7, 14)} textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="14" fill={currColor}>{fmtMillions(curr)}M</text>
+        <line x1="10" x2="250" y1={BASE} y2={BASE} stroke={currColor} strokeWidth="1.5" opacity="0.18" />
+      </svg>
+    );
+  }
+
   return (
     <svg width="100%" height="120" viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet">
       <defs>
@@ -34,20 +52,20 @@ function BarChart({ prior, curr, priorColor, currColor, priorLabel, currLabel }:
         </linearGradient>
       </defs>
       <rect x="22"  y={BASE - pH} width="96" height={pH} rx="7" fill={`url(#${pgId})`} />
-      <text x="70"  y={BASE - pH - 7}  textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="14" fill={priorColor} opacity="0.85">{fmtMillions(prior)}M</text>
+      <text x="70"  y={Math.max(BASE - pH - 7, 14)} textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="14" fill={priorColor} opacity="0.85">{fmtMillions(prior)}M</text>
       <text x="70"  y="114" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="13" fill={priorColor} opacity="0.7">{priorLabel}</text>
       <rect x="142" y={BASE - cH} width="96" height={cH} rx="7" fill={`url(#${cgId})`} />
-      <text x="190" y={BASE - cH - 7}  textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="14" fill={currColor}>{fmtMillions(curr)}M</text>
+      <text x="190" y={Math.max(BASE - cH - 7, 14)} textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="14" fill={currColor}>{fmtMillions(curr)}M</text>
       <text x="190" y="114" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="13" fill={currColor} opacity="0.85">{currLabel}</text>
       <line x1="10" x2="250" y1={BASE} y2={BASE} stroke={currColor} strokeWidth="1.5" opacity="0.18" />
     </svg>
   );
 }
 
-function KpiCard({ label, curr, prior, inverseGood = false, color, delay, chart }: {
+function KpiCard({ label, curr, prior, inverseGood = false, color, delay, chart, singleMonth }: {
   label: string; curr: number; prior: number;
   inverseGood?: boolean; color: string; delay: number;
-  chart: React.ReactNode;
+  chart: React.ReactNode; singleMonth?: boolean;
 }) {
   const colors = useColors();
   const delta = curr - prior;
@@ -79,20 +97,22 @@ function KpiCard({ label, curr, prior, inverseGood = false, color, delay, chart 
         {fmtMillions(curr)}
         <Box component="span" sx={{ fontSize: 28, color: 'text.secondary' }}>M</Box>
       </Box>
-      <Stack direction="row" alignItems="center" gap={1.25} sx={{ mb: 2.5 }}>
-        <Box component="span" sx={{
-          display: 'inline-flex', alignItems: 'center', gap: 0.4,
-          px: 0.9, py: 0.25, borderRadius: '6px', fontWeight: 600,
-          fontSize: 11.5, fontFamily: '"JetBrains Mono", monospace',
-          background: alpha(deltaColor, 0.12), color: deltaColor,
-        }}>
-          {deltaText}
-        </Box>
-        <Typography component="span" sx={{ color: colors.inkSoft, fontSize: 11.5 }}>
-          vs prior · {PESO}{fmtMillions(prior)}M
-        </Typography>
-      </Stack>
-      <Box sx={{ width: '100%', mb: 1.75 }}>{chart}</Box>
+      {!singleMonth && (
+        <Stack direction="row" alignItems="center" gap={1.25} sx={{ mb: 2.5 }}>
+          <Box component="span" sx={{
+            display: 'inline-flex', alignItems: 'center', gap: 0.4,
+            px: 0.9, py: 0.25, borderRadius: '6px', fontWeight: 600,
+            fontSize: 11.5, fontFamily: '"JetBrains Mono", monospace',
+            background: alpha(deltaColor, 0.12), color: deltaColor,
+          }}>
+            {deltaText}
+          </Box>
+          <Typography component="span" sx={{ color: colors.inkSoft, fontSize: 11.5 }}>
+            vs prior · {PESO}{fmtMillions(prior)}M
+          </Typography>
+        </Stack>
+      )}
+      <Box sx={{ width: '100%', mb: 1.75, mt: singleMonth ? 2.5 : 0 }}>{chart}</Box>
       <Box sx={{ height: 8, borderRadius: 99, background: `linear-gradient(90deg, ${color}, ${alpha(color, 0.3)})` }} />
     </Box>
   );
@@ -101,25 +121,26 @@ function KpiCard({ label, curr, prior, inverseGood = false, color, delay, chart 
 export function DsmKpiGrid({ data }: Props) {
   const colors = useColors();
   const { prior, current, inputs } = data;
+  const singleMonth = !inputs.priorLabel;
   const pl = inputs.priorLabel.split(' ')[0];
   const cl = inputs.currentLabel.split(' ')[0];
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, '@media (max-width: 900px)': { gridTemplateColumns: '1fr' } }}>
-      <KpiCard
+      <KpiCard singleMonth={singleMonth}
         label="Total DSM Revenue" curr={current.totalRev} prior={prior.totalRev}
         color={colors.accent2} delay={0.05}
-        chart={<BarChart prior={prior.totalRev} curr={current.totalRev} priorColor={colors.accent2} currColor={colors.accent2} priorLabel={pl} currLabel={cl} />}
+        chart={<BarChart prior={prior.totalRev} curr={current.totalRev} priorColor={colors.accent2} currColor={colors.accent2} priorLabel={pl} currLabel={cl} singleMonth={singleMonth} />}
       />
-      <KpiCard
+      <KpiCard singleMonth={singleMonth}
         label="Total DSM Expenses" curr={current.totalExp} prior={prior.totalExp}
         inverseGood color={colors.danger} delay={0.1}
-        chart={<BarChart prior={prior.totalExp} curr={current.totalExp} priorColor={colors.danger} currColor={colors.danger} priorLabel={pl} currLabel={cl} />}
+        chart={<BarChart prior={prior.totalExp} curr={current.totalExp} priorColor={colors.danger} currColor={colors.danger} priorLabel={pl} currLabel={cl} singleMonth={singleMonth} />}
       />
-      <KpiCard
+      <KpiCard singleMonth={singleMonth}
         label="Net Savings" curr={current.netSavings} prior={prior.netSavings}
         color={current.netSavings >= 0 ? colors.accent : colors.danger} delay={0.15}
-        chart={<BarChart prior={prior.netSavings} curr={current.netSavings} priorColor={colors.accent} currColor={current.netSavings >= 0 ? colors.accent : colors.danger} priorLabel={pl} currLabel={cl} />}
+        chart={<BarChart prior={prior.netSavings} curr={current.netSavings} priorColor={colors.accent} currColor={current.netSavings >= 0 ? colors.accent : colors.danger} priorLabel={pl} currLabel={cl} singleMonth={singleMonth} />}
       />
     </Box>
   );

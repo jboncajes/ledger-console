@@ -105,7 +105,8 @@ export function RevenueVsPower({ data }: Props) {
   const powPctCurr  = revCurr  > 0 ? (powCurr  / revCurr)  * 100 : 0;
   const pctDelta    = powPctCurr - powPctPrior;
 
-  const maxScale = Math.max(revPrior, revCurr, 1);
+  const singleMonth = !priorLabel;
+  const maxScale = singleMonth ? Math.max(revCurr, 1) : Math.max(revPrior, revCurr, 1);
 
   return (
     <Box
@@ -144,18 +145,20 @@ export function RevenueVsPower({ data }: Props) {
             Each bar shows revenue — the red portion is power cost
           </Typography>
         </Box>
-        <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} gap={0.3} sx={{ flexShrink: 0, pt: { sm: 0.5 } }}>
-          <Box sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.5,
-            px: 1.25, py: 0.4, borderRadius: '8px', fontSize: 13, fontWeight: 700,
-            fontFamily: '"JetBrains Mono", monospace',
-            background: pctDelta <= 0 ? alpha(colors.accent2, 0.12) : alpha(colors.danger, 0.12),
-            color: pctDelta <= 0 ? colors.accent2 : colors.danger,
-          }}>
-            {pctDelta <= 0 ? '▼' : '▲'} {Math.abs(pctDelta).toFixed(1)} pp
-          </Box>
-          <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>power cost ratio</Typography>
-        </Stack>
+        {!singleMonth && (
+          <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} gap={0.3} sx={{ flexShrink: 0, pt: { sm: 0.5 } }}>
+            <Box sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.5,
+              px: 1.25, py: 0.4, borderRadius: '8px', fontSize: 13, fontWeight: 700,
+              fontFamily: '"JetBrains Mono", monospace',
+              background: pctDelta <= 0 ? alpha(colors.accent2, 0.12) : alpha(colors.danger, 0.12),
+              color: pctDelta <= 0 ? colors.accent2 : colors.danger,
+            }}>
+              {pctDelta <= 0 ? '▼' : '▲'} {Math.abs(pctDelta).toFixed(1)} pp
+            </Box>
+            <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>power cost ratio</Typography>
+          </Stack>
+        )}
       </Stack>
 
       {/* Color key */}
@@ -172,42 +175,37 @@ export function RevenueVsPower({ data }: Props) {
 
       {/* Period bars — current on top, prior below */}
       <Stack gap={2.5} sx={{ mt: 2.5 }}>
-        <PeriodRow
-          label={currLabel}
-          rev={revCurr} power={powCurr}
-          maxScale={maxScale} isCurrent
-        />
-        <PeriodRow
-          label={priorLabel}
-          rev={revPrior} power={powPrior}
-          maxScale={maxScale} isCurrent={false}
-        />
+        <PeriodRow label={currLabel} rev={revCurr} power={powCurr} maxScale={maxScale} isCurrent />
+        {!singleMonth && (
+          <PeriodRow label={priorLabel} rev={revPrior} power={powPrior} maxScale={maxScale} isCurrent={false} />
+        )}
       </Stack>
 
-      {/* Footer: ratio transition */}
+      {/* Footer: ratio */}
       <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${colors.border}` }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
-            Power cost ratio
-          </Typography>
-          <Stack direction="row" gap={1.5} alignItems="center">
-            <Stack alignItems="flex-end">
-              <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>{priorLabel}</Typography>
-              <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim }}>
-                {powPctPrior.toFixed(1)}%
-              </Typography>
+          <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>Power cost ratio</Typography>
+          {singleMonth ? (
+            <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: colors.danger }}>
+              {powPctCurr.toFixed(1)}%
+            </Typography>
+          ) : (
+            <Stack direction="row" gap={1.5} alignItems="center">
+              <Stack alignItems="flex-end">
+                <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>{priorLabel}</Typography>
+                <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim }}>
+                  {powPctPrior.toFixed(1)}%
+                </Typography>
+              </Stack>
+              <Typography sx={{ fontSize: 14, color: colors.borderStrong, mt: 1.5 }}>→</Typography>
+              <Stack alignItems="flex-end">
+                <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: colors.ink }}>{currLabel}</Typography>
+                <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: pctDelta <= 0 ? colors.accent2 : colors.danger }}>
+                  {powPctCurr.toFixed(1)}%
+                </Typography>
+              </Stack>
             </Stack>
-            <Typography sx={{ fontSize: 14, color: colors.borderStrong, mt: 1.5 }}>→</Typography>
-            <Stack alignItems="flex-end">
-              <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: colors.ink }}>{currLabel}</Typography>
-              <Typography sx={{
-                fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 700,
-                color: pctDelta <= 0 ? colors.accent2 : colors.danger,
-              }}>
-                {powPctCurr.toFixed(1)}%
-              </Typography>
-            </Stack>
-          </Stack>
+          )}
         </Stack>
       </Box>
     </Box>

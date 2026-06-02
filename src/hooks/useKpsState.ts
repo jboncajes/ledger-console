@@ -52,22 +52,32 @@ function migrateInputs(inp: Partial<KpsInputs> & Record<string, unknown>): KpsIn
 export function useKpsState(namespace = 'kps', showPrevMonth = false) {
   const [allMonths, setAllMonths] = useState<KpsMonthRecord[]>(KPS_MONTHS_SEED);
   const [synced, setSynced] = useState(false);
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [selectedId, setSelectedIdRaw] = useState<string>(() => {
+    try { return localStorage.getItem(`kps-selectedId-${namespace}`) ?? ''; } catch { return ''; }
+  });
+  const setSelectedId = useCallback((id: string) => {
+    setSelectedIdRaw(id);
+    try { localStorage.setItem(`kps-selectedId-${namespace}`, id); } catch { /* ignore */ }
+  }, [namespace]);
 
   useEffect(() => {
     let cancelled = false;
     fetchRecords('kps', namespace).then((rows) => {
       if (cancelled) return;
+      const storedId = (() => { try { return localStorage.getItem(`kps-selectedId-${namespace}`) ?? ''; } catch { return ''; } })();
       if (rows.length > 0) {
         const seedMap = new Map(KPS_MONTHS_SEED.map((m) => [m.id, m]));
-        for (const r of rows) seedMap.set(r.id, { id: r.id, label: r.label, year: r.year, month: r.month, inputs: migrateInputs(r.inputs as Partial<KpsInputs> & Record<string, unknown>) });
+        for (const r of rows) seedMap.set(r.id, { id: r.id, label: `${['January','February','March','April','May','June','July','August','September','October','November','December'][r.month-1]} ${r.year}`, year: r.year, month: r.month, inputs: migrateInputs(r.inputs as Partial<KpsInputs> & Record<string, unknown>) });
         const loaded = stripToAllowed([...seedMap.values()].sort((a, b) => a.id.localeCompare(b.id)));
         setAllMonths(loaded);
         const cutoff = strictCutoffId();
         const visible = loaded.filter((m) => m.id < cutoff);
-        setSelectedId(defaultSelectedId(visible.length > 0 ? visible : loaded));
+        const fallback = defaultSelectedId(visible.length > 0 ? visible : loaded);
+        setSelectedIdRaw((visible.length > 0 ? visible : loaded).some((m) => m.id === storedId) ? storedId : fallback);
       } else {
-        setSelectedId(defaultSelectedId(KPS_MONTHS_SEED.filter((m) => m.id < strictCutoffId())));
+        const seed = KPS_MONTHS_SEED.filter((m) => m.id < strictCutoffId());
+        const fallback = defaultSelectedId(seed);
+        setSelectedIdRaw(seed.some((m) => m.id === storedId) ? storedId : fallback);
       }
       setSynced(true);
     });

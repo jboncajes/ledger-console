@@ -41,7 +41,7 @@ export function useSlState(namespace = 'sl', showPrevMonth = false) {
       if (cancelled) return;
       if (rows.length > 0) {
         const seedMap = new Map(SL_MONTHS_SEED.map((m) => [m.id, m]));
-        for (const r of rows) seedMap.set(r.id, { id: r.id, label: r.label, year: r.year, month: r.month, inputs: migrateInputs(r.inputs as Partial<SlInputs> & Record<string, unknown>) });
+        for (const r of rows) seedMap.set(r.id, { id: r.id, label: `${['January','February','March','April','May','June','July','August','September','October','November','December'][r.month-1]} ${r.year}`, year: r.year, month: r.month, inputs: migrateInputs(r.inputs as Partial<SlInputs> & Record<string, unknown>) });
         setAllMonths(stripToAllowed([...seedMap.values()].sort((a, b) => a.id.localeCompare(b.id))));
       }
       setSynced(true);

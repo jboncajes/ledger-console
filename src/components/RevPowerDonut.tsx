@@ -43,6 +43,7 @@ export function RevPowerDonut({ data }: Props) {
     ];
   }
 
+  const singleMonth = !priorLabel;
   const outerSegs = buildRing(ratioCurr,  circumO);
   const innerSegs = buildRing(ratioPrior, circumI);
 
@@ -77,16 +78,16 @@ export function RevPowerDonut({ data }: Props) {
         Power Cost Ratio
       </Typography>
       <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>
-        Power purchased as share of revenue · {priorLabel} vs {currLabel}
+        Power purchased as share of revenue{priorLabel ? ` · ${priorLabel} vs ${currLabel}` : ` · ${currLabel}`}
       </Typography>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" gap={3} sx={{ mt: 2.5 }}>
         {/* Dual-ring SVG donut */}
         <Box sx={{ flexShrink: 0, width: { xs: '100%', sm: 250 }, maxWidth: 250 }}>
           <Box component="svg" viewBox="0 0 250 250" sx={{ width: '100%', height: 'auto', display: 'block' }}>
-            {/* Background tracks */}
+            {/* Background track */}
             <circle cx={cx} cy={cy} r={RO} fill="none" stroke={alpha(colors.ink, 0.07)} strokeWidth={SW} />
-            <circle cx={cx} cy={cy} r={RI} fill="none" stroke={alpha(colors.ink, 0.07)} strokeWidth={SW} />
+            {!singleMonth && <circle cx={cx} cy={cy} r={RI} fill="none" stroke={alpha(colors.ink, 0.07)} strokeWidth={SW} />}
 
             {/* Outer ring — current period */}
             {outerSegs.map((seg) => (
@@ -102,8 +103,8 @@ export function RevPowerDonut({ data }: Props) {
               />
             ))}
 
-            {/* Inner ring — prior period */}
-            {innerSegs.map((seg) => (
+            {/* Inner ring — prior period (hidden in single-month mode) */}
+            {!singleMonth && innerSegs.map((seg) => (
               <circle key={`i-${seg.id}`}
                 cx={cx} cy={cy} r={RI}
                 fill="none"
@@ -116,18 +117,20 @@ export function RevPowerDonut({ data }: Props) {
               />
             ))}
 
-            {/* Center: current ratio + delta */}
+            {/* Center label */}
             <text x={cx} y={cy - 14} textAnchor="middle" fontSize="9.5"
               fill={colors.inkSoft} fontFamily="Inter, sans-serif">power ratio</text>
-            <text x={cx} y={cy + 4} textAnchor="middle" fontSize="18" fontWeight="700"
+            <text x={cx} y={singleMonth ? cy + 8 : cy + 4} textAnchor="middle" fontSize="18" fontWeight="700"
               fill={colors.ink} fontFamily="JetBrains Mono, monospace">
               {pctCurr.toFixed(1)}%
             </text>
-            <text x={cx} y={cy + 19} textAnchor="middle" fontSize="10" fontWeight="600"
-              fill={pctDelta <= 0 ? colors.accent2 : colors.danger}
-              fontFamily="JetBrains Mono, monospace">
-              {pctDelta <= 0 ? '▼' : '▲'}{Math.abs(pctDelta).toFixed(1)}pp
-            </text>
+            {!singleMonth && (
+              <text x={cx} y={cy + 19} textAnchor="middle" fontSize="10" fontWeight="600"
+                fill={pctDelta <= 0 ? colors.accent2 : colors.danger}
+                fontFamily="JetBrains Mono, monospace">
+                {pctDelta <= 0 ? '▼' : '▲'}{Math.abs(pctDelta).toFixed(1)}pp
+              </text>
+            )}
           </Box>
         </Box>
 
@@ -137,16 +140,31 @@ export function RevPowerDonut({ data }: Props) {
           <Stack gap={0.75}>
             <Stack direction="row" alignItems="center" gap={1}>
               <Box sx={{ width: 18, height: 6, borderRadius: 99, background: colors.danger }} />
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: colors.ink }}>{currLabel} (outer)</Typography>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: colors.ink }}>
+                {currLabel}{!singleMonth ? ' (outer)' : ''}
+              </Typography>
             </Stack>
-            <Stack direction="row" alignItems="center" gap={1}>
-              <Box sx={{ width: 18, height: 6, borderRadius: 99, background: alpha(colors.danger, 0.42) }} />
-              <Typography sx={{ fontSize: 12, color: colors.inkSoft }}>{priorLabel} (inner)</Typography>
-            </Stack>
+            {!singleMonth && (
+              <Stack direction="row" alignItems="center" gap={1}>
+                <Box sx={{ width: 18, height: 6, borderRadius: 99, background: alpha(colors.danger, 0.42) }} />
+                <Typography sx={{ fontSize: 12, color: colors.inkSoft }}>{priorLabel} (inner)</Typography>
+              </Stack>
+            )}
           </Stack>
 
           <Box sx={{ pt: 1.5, borderTop: `1px solid ${colors.border}` }}>
             <Typography sx={{ fontSize: 11.5, color: 'text.secondary', mb: 1.5 }}>Power cost ratio</Typography>
+            {singleMonth ? (
+              <Stack alignItems="center" gap={0.25}>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: colors.ink }}>{currLabel}</Typography>
+                <Typography sx={{ fontSize: 22, fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: colors.danger }}>
+                  {pctCurr.toFixed(1)}%
+                </Typography>
+                <Typography sx={{ fontSize: 11, color: colors.inkSoft, fontFamily: '"JetBrains Mono", monospace' }}>
+                  {PESO}{fmtMillions(powCurr)}M
+                </Typography>
+              </Stack>
+            ) : (
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Stack alignItems="center" gap={0.25}>
                 <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>{priorLabel}</Typography>
@@ -181,6 +199,7 @@ export function RevPowerDonut({ data }: Props) {
                 </Typography>
               </Stack>
             </Stack>
+            )}
           </Box>
         </Stack>
       </Stack>

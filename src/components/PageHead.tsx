@@ -1,9 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import {
   Box,
   Button,
   ButtonGroup,
   Chip,
+  MenuItem,
+  Select,
   Stack,
   Tooltip,
   Typography,
@@ -19,7 +21,7 @@ import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import type { PeriodView } from '../types/pnl';
 import { useColors } from '../theme/theme';
 
-const PERIODS: PeriodView[] = ['MoM', 'QoQ', 'YTD', 'YoY'];
+const PERIODS: PeriodView[] = ['MoM', 'QoQ', 'YTD', 'YoY', 'Month'];
 
 const PERIOD_META: Record<PeriodView, { title: string; body: string }> = {
   MoM: {
@@ -38,6 +40,10 @@ const PERIOD_META: Record<PeriodView, { title: string; body: string }> = {
     title: 'Year-over-Year',
     body: 'Compares the current month against the same month from the previous year. Useful for seasonal performance analysis.',
   },
+  Month: {
+    title: 'Single Month',
+    body: 'View one specific month\'s data in isolation — no prior period comparison.',
+  },
 };
 
 interface PageHeadProps {
@@ -54,6 +60,10 @@ interface PageHeadProps {
   onTogglePrevMonth?: () => void;
   prevMonthLabel?: string;
   username?: string;
+  months?: { id: string; label: string; year: number; month: number }[];
+  singleMonthId?: string;
+  onSingleMonthChange?: (id: string) => void;
+  showMonthPicker?: boolean;
 }
 
 const pulse = keyframes`
@@ -75,11 +85,24 @@ export function PageHead({
   onTogglePrevMonth,
   prevMonthLabel,
   username = 'there',
+  months,
+  singleMonthId,
+  onSingleMonthChange,
+  showMonthPicker,
 }: PageHeadProps) {
   const colors = useColors();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const monthsByYear = useMemo(() => {
+    if (!months || months.length === 0) return [];
+    const years = [...new Set(months.map((m) => m.year))].sort((a, b) => b - a);
+    return years.map((year) => ({
+      year,
+      items: [...months].filter((m) => m.year === year).sort((a, b) => b.month - a.month),
+    }));
+  }, [months]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -244,6 +267,36 @@ export function PageHead({
               </Tooltip>
             ))}
           </ButtonGroup>
+        )}
+
+        {/* Month picker — grouped by year, shown in Month mode or when showMonthPicker is set */}
+        {monthsByYear.length > 0 && (showMonthPicker || (!hidePeriodSelector && activePeriod === 'Month')) && (
+          <Select
+            value={singleMonthId ?? ''}
+            onChange={(e) => onSingleMonthChange?.(e.target.value)}
+            size="small"
+            data-copy-hide="true"
+            sx={{
+              fontSize: 12.5,
+              fontWeight: 500,
+              height: 36,
+              minWidth: 160,
+              background: colors.panel,
+              backdropFilter: 'blur(20px)',
+              '.MuiOutlinedInput-notchedOutline': { borderColor: colors.border },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: colors.borderStrong },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: colors.accent },
+            }}
+          >
+            {monthsByYear.map(({ year, items }) => [
+              <MenuItem key={`hdr-${year}`} disabled sx={{ fontSize: 10, letterSpacing: '1.4px', textTransform: 'uppercase', color: colors.inkSoft, py: 0.5, minHeight: 'auto' }}>
+                {year}
+              </MenuItem>,
+              ...items.map((m) => (
+                <MenuItem key={m.id} value={m.id} sx={{ fontSize: 13 }}>{m.label}</MenuItem>
+              )),
+            ])}
+          </Select>
         )}
 
         {isMobile ? (

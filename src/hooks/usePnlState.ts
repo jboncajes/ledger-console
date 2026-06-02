@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { MonthRecord, PeriodView, PnlInputs } from '../types/pnl';
-import { MONTHS_SEED, computePeriod, getPeriodSlices } from '../utils/pnl';
+import { MONTHS_SEED, computePeriod, getPeriodSlices, monthLabel } from '../utils/pnl';
 import { fetchRecords, upsertRecords } from '../lib/db';
 
 function strictCutoffMonthId(): string {
@@ -25,6 +25,13 @@ function stripToAllowed(months: MonthRecord[]): MonthRecord[] {
 export function usePnlState(namespace: string = 'soo', activePeriod: PeriodView = 'MoM', showPrevMonth = false) {
   const [allMonths, setAllMonths] = useState<MonthRecord[]>(MONTHS_SEED);
   const [synced, setSynced] = useState(false);
+  const [singleMonthId, setSingleMonthIdRaw] = useState<string>(() => {
+    try { return localStorage.getItem(`pnl-singleMonthId-${namespace}`) ?? ''; } catch { return ''; }
+  });
+  const setSingleMonthId = useCallback((id: string) => {
+    setSingleMonthIdRaw(id);
+    try { localStorage.setItem(`pnl-singleMonthId-${namespace}`, id); } catch { /* ignore */ }
+  }, [namespace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +39,7 @@ export function usePnlState(namespace: string = 'soo', activePeriod: PeriodView 
       if (cancelled) return;
       if (rows.length > 0) {
         const seedMap = new Map(MONTHS_SEED.map((m) => [m.id, m]));
-        for (const r of rows) seedMap.set(r.id, { id: r.id, label: r.label, year: r.year, month: r.month, inputs: r.inputs as PnlInputs });
+        for (const r of rows) seedMap.set(r.id, { id: r.id, label: monthLabel(r.month, r.year), year: r.year, month: r.month, inputs: r.inputs as PnlInputs });
         setAllMonths(stripToAllowed([...seedMap.values()].sort((a, b) => a.id.localeCompare(b.id))));
       }
       setSynced(true);
@@ -51,7 +58,14 @@ export function usePnlState(namespace: string = 'soo', activePeriod: PeriodView 
     return allMonths.filter((m) => m.id < cutoff);
   }, [allMonths, showPrevMonth]);
 
-  const displayData = useMemo(() => getPeriodSlices(months, activePeriod), [months, activePeriod]);
+  const resolvedSingleId = useMemo(() => {
+    if (activePeriod !== 'Month') return '';
+    if (singleMonthId && months.some((m) => m.id === singleMonthId)) return singleMonthId;
+    const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));
+    return sorted[sorted.length - 1]?.id ?? '';
+  }, [activePeriod, singleMonthId, months]);
+
+  const displayData = useMemo(() => getPeriodSlices(months, activePeriod, resolvedSingleId), [months, activePeriod, resolvedSingleId]);
 
   const computed = useMemo(() => ({
     prior: computePeriod(displayData.prior),
@@ -84,5 +98,5 @@ export function usePnlState(namespace: string = 'soo', activePeriod: PeriodView 
     setAllMonths(MONTHS_SEED);
   }, []);
 
-  return { months, activePeriod, updateMonthField, resetMonth, resetAll, importMonths, displayData, computed };
+  return { months, activePeriod, singleMonthId: resolvedSingleId, setSingleMonthId, updateMonthField, resetMonth, resetAll, importMonths, displayData, computed };
 }

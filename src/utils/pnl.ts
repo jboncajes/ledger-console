@@ -33,11 +33,22 @@ export function sumInputs(list: PnlInputs[]): PnlInputs {
 const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const LONG  = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+export function monthLabel(month: number, year: number): string {
+  return `${LONG[month - 1]} ${year}`;
+}
+
 const EMPTY_INPUTS: PnlInputs = {
   opRev: 0, othRev: 0, power: 0, distrib: 0, supply: 0, meter: 0, adg: 0, deprec: 0, interest: 0, nonOpRev: 0, nonOpExp: 0, rfsc: 0,
 };
 
-export function getPeriodSlices(months: MonthRecord[], period: PeriodView): PnlPeriod {
+export function getPeriodSlices(months: MonthRecord[], period: PeriodView, singleMonthId?: string): PnlPeriod {
+  if (period === 'Month') {
+    const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));
+    const m = sorted.find((r) => r.id === singleMonthId) ?? sorted[sorted.length - 1];
+    return m
+      ? { current: m.inputs, prior: EMPTY_INPUTS, currentLabel: m.label, priorLabel: '' }
+      : { current: EMPTY_INPUTS, prior: EMPTY_INPUTS, currentLabel: 'Current', priorLabel: '' };
+  }
   if (months.length === 0) {
     return { current: EMPTY_INPUTS, prior: EMPTY_INPUTS, currentLabel: 'Current', priorLabel: 'Prior' };
   }

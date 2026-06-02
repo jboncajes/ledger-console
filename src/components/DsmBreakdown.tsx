@@ -33,13 +33,14 @@ function MetricRow({ label, currValue, priorValue, currLabel, priorLabel, scale,
   const colors = useColors();
   const pctCurr  = scale > 0 ? Math.min((currValue  / scale) * 100, 100) : 0;
   const pctPrior = scale > 0 ? Math.min((priorValue / scale) * 100, 100) : 0;
+  const singleMonth = !priorLabel;
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
         <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{label}</Typography>
-        <Delta delta={currValue - priorValue} prior={priorValue} />
+        {!singleMonth && <Delta delta={currValue - priorValue} prior={priorValue} />}
       </Stack>
-      <Stack direction="row" alignItems="center" gap={1.5} mb={0.75}>
+      <Stack direction="row" alignItems="center" gap={1.5} mb={singleMonth ? 0 : 0.75}>
         <Typography sx={{ fontSize: 11, fontWeight: 600, color: colors.ink, width: 90, flexShrink: 0 }}>{currLabel}</Typography>
         <Box sx={{ flex: 1, height: 22, background: alpha(colors.ink, 0.06), borderRadius: 99, overflow: 'hidden' }}>
           <Box sx={{ height: '100%', width: `${pctCurr}%`, borderRadius: 99, background: `linear-gradient(90deg, ${color}, ${alpha(color, 0.65)})`, transition: 'width 0.6s ease' }} />
@@ -48,15 +49,17 @@ function MetricRow({ label, currValue, priorValue, currLabel, priorLabel, scale,
           {PESO}{fmtMillions(currValue)}M
         </Typography>
       </Stack>
-      <Stack direction="row" alignItems="center" gap={1.5}>
-        <Typography sx={{ fontSize: 11, color: colors.inkSoft, width: 90, flexShrink: 0 }}>{priorLabel}</Typography>
-        <Box sx={{ flex: 1, height: 14, background: alpha(colors.ink, 0.05), borderRadius: 99, overflow: 'hidden' }}>
-          <Box sx={{ height: '100%', width: `${pctPrior}%`, borderRadius: 99, background: alpha(color, 0.3), transition: 'width 0.6s ease' }} />
-        </Box>
-        <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', width: 80, textAlign: 'right', flexShrink: 0, color: 'text.secondary' }}>
-          {PESO}{fmtMillions(priorValue)}M
-        </Typography>
-      </Stack>
+      {!singleMonth && (
+        <Stack direction="row" alignItems="center" gap={1.5}>
+          <Typography sx={{ fontSize: 11, color: colors.inkSoft, width: 90, flexShrink: 0 }}>{priorLabel}</Typography>
+          <Box sx={{ flex: 1, height: 14, background: alpha(colors.ink, 0.05), borderRadius: 99, overflow: 'hidden' }}>
+            <Box sx={{ height: '100%', width: `${pctPrior}%`, borderRadius: 99, background: alpha(color, 0.3), transition: 'width 0.6s ease' }} />
+          </Box>
+          <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', width: 80, textAlign: 'right', flexShrink: 0, color: 'text.secondary' }}>
+            {PESO}{fmtMillions(priorValue)}M
+          </Typography>
+        </Stack>
+      )}
     </Box>
   );
 }
@@ -90,7 +93,7 @@ export function DsmRevenueBreakdown({ data }: Props) {
         {copied ? <CheckRoundedIcon sx={{ fontSize: 13, color: colors.accent2 }} /> : <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />}
       </IconButton>
       <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: { xs: 18, sm: 22 }, letterSpacing: '-0.3px' }}>Revenue Breakdown</Typography>
-      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>{pl} vs {cl} · DSM revenue components</Typography>
+      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>{pl ? `${pl} vs ${cl}` : cl} · DSM revenue components</Typography>
       <Stack gap={3} sx={{ mt: 3 }}>
         {ROWS.map((r) => <MetricRow key={r.label} label={r.label} currValue={r.curr} priorValue={r.prior} currLabel={cl} priorLabel={pl} scale={scale} color={r.color} />)}
       </Stack>
@@ -126,7 +129,7 @@ export function DsmExpenseBreakdown({ data }: Props) {
         {copied ? <CheckRoundedIcon sx={{ fontSize: 13, color: colors.accent2 }} /> : <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />}
       </IconButton>
       <Typography sx={{ fontFamily: '"Instrument Serif", serif', fontSize: { xs: 18, sm: 22 }, letterSpacing: '-0.3px' }}>Expense Breakdown</Typography>
-      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>{pl} vs {cl} · DSM expense components</Typography>
+      <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>{pl ? `${pl} vs ${cl}` : cl} · DSM expense components</Typography>
       <Stack gap={3} sx={{ mt: 3 }}>
         {ROWS.map((r) => <MetricRow key={r.label} label={r.label} currValue={r.curr} priorValue={r.prior} currLabel={cl} priorLabel={pl} scale={scale} color={r.color} />)}
       </Stack>

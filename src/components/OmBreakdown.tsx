@@ -38,14 +38,15 @@ function MetricRow({ label, currValue, priorValue, currLabel, priorLabel, scale,
   const pctCurr  = scale > 0 ? Math.min((currValue  / scale) * 100, 100) : 0;
   const pctPrior = scale > 0 ? Math.min((priorValue / scale) * 100, 100) : 0;
 
+  const singleMonth = !priorLabel;
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.25}>
         <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{label}</Typography>
-        <Delta delta={currValue - priorValue} prior={priorValue} inverseGood />
+        {!singleMonth && <Delta delta={currValue - priorValue} prior={priorValue} inverseGood />}
       </Stack>
 
-      <Stack direction="row" alignItems="center" gap={1.5} mb={0.75}>
+      <Stack direction="row" alignItems="center" gap={1.5} mb={singleMonth ? 0 : 0.75}>
         <Typography sx={{ fontSize: 11, fontWeight: 600, color: colors.ink, width: 90, flexShrink: 0 }}>
           {currLabel}
         </Typography>
@@ -61,21 +62,23 @@ function MetricRow({ label, currValue, priorValue, currLabel, priorLabel, scale,
         </Typography>
       </Stack>
 
-      <Stack direction="row" alignItems="center" gap={1.5}>
-        <Typography sx={{ fontSize: 11, color: colors.inkSoft, width: 90, flexShrink: 0 }}>
-          {priorLabel}
-        </Typography>
-        <Box sx={{ flex: 1, height: 14, background: alpha(colors.ink, 0.05), borderRadius: 99, overflow: 'hidden' }}>
-          <Box sx={{
-            height: '100%', width: `${pctPrior}%`, borderRadius: 99,
-            background: alpha(color, 0.3),
-            transition: 'width 0.6s ease',
-          }} />
-        </Box>
-        <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', width: 80, textAlign: 'right', flexShrink: 0, color: 'text.secondary' }}>
-          {PESO}{fmtMillions(priorValue)}M
-        </Typography>
-      </Stack>
+      {!singleMonth && (
+        <Stack direction="row" alignItems="center" gap={1.5}>
+          <Typography sx={{ fontSize: 11, color: colors.inkSoft, width: 90, flexShrink: 0 }}>
+            {priorLabel}
+          </Typography>
+          <Box sx={{ flex: 1, height: 14, background: alpha(colors.ink, 0.05), borderRadius: 99, overflow: 'hidden' }}>
+            <Box sx={{
+              height: '100%', width: `${pctPrior}%`, borderRadius: 99,
+              background: alpha(color, 0.3),
+              transition: 'width 0.6s ease',
+            }} />
+          </Box>
+          <Typography sx={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', width: 80, textAlign: 'right', flexShrink: 0, color: 'text.secondary' }}>
+            {PESO}{fmtMillions(priorValue)}M
+          </Typography>
+        </Stack>
+      )}
     </Box>
   );
 }
@@ -137,7 +140,7 @@ export function OmBreakdown({ data }: Props) {
             Operating and Maintenance Breakdown
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>
-            Operating and Maintenance components · period comparison
+            Operating and Maintenance components{priorLabel ? ' · period comparison' : ''}
           </Typography>
         </Box>
         <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} gap={0.3} sx={{ flexShrink: 0, pt: { sm: 0.5 } }}>

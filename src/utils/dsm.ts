@@ -38,7 +38,14 @@ const EMPTY: DsmPeriod = {
   current: DSM_ZERO, prior: DSM_ZERO, currentLabel: 'Current', priorLabel: 'Prior',
 };
 
-export function getDsmPeriodSlices(months: DsmMonthRecord[], period: PeriodView): DsmPeriod {
+export function getDsmPeriodSlices(months: DsmMonthRecord[], period: PeriodView, singleMonthId?: string): DsmPeriod {
+  if (period === 'Month') {
+    const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));
+    const m = sorted.find((r) => r.id === singleMonthId) ?? sorted[sorted.length - 1];
+    return m
+      ? { current: m.inputs, prior: DSM_ZERO, currentLabel: m.label, priorLabel: '' }
+      : { current: DSM_ZERO, prior: DSM_ZERO, currentLabel: 'Current', priorLabel: '' };
+  }
   if (months.length === 0) return EMPTY;
 
   const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));

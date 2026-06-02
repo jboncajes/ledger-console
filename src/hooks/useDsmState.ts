@@ -25,6 +25,13 @@ function stripToAllowed(months: DsmMonthRecord[]): DsmMonthRecord[] {
 export function useDsmState(namespace = 'dsm', activePeriod: PeriodView = 'MoM', showPrevMonth = false) {
   const [allMonths, setAllMonths] = useState<DsmMonthRecord[]>(DSM_MONTHS_SEED);
   const [synced, setSynced] = useState(false);
+  const [singleMonthId, setSingleMonthIdRaw] = useState<string>(() => {
+    try { return localStorage.getItem(`dsm-singleMonthId-${namespace}`) ?? ''; } catch { return ''; }
+  });
+  const setSingleMonthId = useCallback((id: string) => {
+    setSingleMonthIdRaw(id);
+    try { localStorage.setItem(`dsm-singleMonthId-${namespace}`, id); } catch { /* ignore */ }
+  }, [namespace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +39,7 @@ export function useDsmState(namespace = 'dsm', activePeriod: PeriodView = 'MoM',
       if (cancelled) return;
       if (rows.length > 0) {
         const seedMap = new Map(DSM_MONTHS_SEED.map((m) => [m.id, m]));
-        for (const r of rows) seedMap.set(r.id, { id: r.id, label: r.label, year: r.year, month: r.month, inputs: r.inputs as DsmInputs });
+        for (const r of rows) seedMap.set(r.id, { id: r.id, label: `${['January','February','March','April','May','June','July','August','September','October','November','December'][r.month-1]} ${r.year}`, year: r.year, month: r.month, inputs: r.inputs as DsmInputs });
         setAllMonths(stripToAllowed([...seedMap.values()].sort((a, b) => a.id.localeCompare(b.id))));
       }
       setSynced(true);
@@ -51,7 +58,14 @@ export function useDsmState(namespace = 'dsm', activePeriod: PeriodView = 'MoM',
     return allMonths.filter((m) => m.id < cutoff);
   }, [allMonths, showPrevMonth]);
 
-  const displayData = useMemo(() => getDsmPeriodSlices(months, activePeriod), [months, activePeriod]);
+  const resolvedSingleId = useMemo(() => {
+    if (activePeriod !== 'Month') return '';
+    if (singleMonthId && months.some((m) => m.id === singleMonthId)) return singleMonthId;
+    const sorted = [...months].sort((a, b) => a.id.localeCompare(b.id));
+    return sorted[sorted.length - 1]?.id ?? '';
+  }, [activePeriod, singleMonthId, months]);
+
+  const displayData = useMemo(() => getDsmPeriodSlices(months, activePeriod, resolvedSingleId), [months, activePeriod, resolvedSingleId]);
 
   const computed = useMemo(() => ({
     prior: computeDsmPeriod(displayData.prior),
@@ -78,5 +92,5 @@ export function useDsmState(namespace = 'dsm', activePeriod: PeriodView = 'MoM',
     });
   }, []);
 
-  return { months, activePeriod, updateMonthField, resetMonth, importMonths, displayData, computed };
+  return { months, activePeriod, singleMonthId: resolvedSingleId, setSingleMonthId, updateMonthField, resetMonth, importMonths, displayData, computed };
 }

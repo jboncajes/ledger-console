@@ -61,7 +61,9 @@ function getPrevMonthLabel(): string {
 }
 
 export default function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('darkMode') === 'true'; } catch { return false; }
+  });
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const appTheme = useMemo(() => createAppTheme(darkMode ? 'dark' : 'light'), [darkMode]);
@@ -96,7 +98,11 @@ export default function App() {
         <Dashboard
           user={user}
           darkMode={darkMode}
-          onToggleDark={() => setDarkMode((d) => !d)}
+          onToggleDark={() => setDarkMode((d) => {
+            const next = !d;
+            try { localStorage.setItem('darkMode', String(next)); } catch { /* ignore */ }
+            return next;
+          })}
           onLogout={async () => { await logout(); setUser(null); }}
         />
       ) : (
@@ -265,6 +271,8 @@ function DsmEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }
     importMonths,
     displayData,
     computed,
+    singleMonthId: dsmSingleMonthId,
+    setSingleMonthId: setDsmSingleMonthId,
   } = useDsmState('dsm', activePeriod, showPrevMonth);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -311,6 +319,9 @@ function DsmEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }
           onTogglePrevMonth={onTogglePrevMonth}
           prevMonthLabel={prevMonthLabel}
           username={username}
+          months={months}
+          singleMonthId={dsmSingleMonthId}
+          onSingleMonthChange={setDsmSingleMonthId}
         />
 
         <DsmKpiGrid data={combined} />
@@ -409,6 +420,10 @@ function KpsEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }
           onTogglePrevMonth={onTogglePrevMonth}
           prevMonthLabel={prevMonthLabel}
           username={username}
+          months={months}
+          singleMonthId={selectedId}
+          onSingleMonthChange={setSelectedId}
+          showMonthPicker
         />
 
         <KpsKpiGrid scores={scores} month={selectedMonth} />
@@ -455,12 +470,19 @@ function SlEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }:
     () => [...new Set(months.map((m) => m.year))].sort(),
     [months],
   );
-  const [selectedYear, setSelectedYear] = useState<number>(() => {
-    const loaded = months;
+  const [selectedYear, setSelectedYearRaw] = useState<number>(() => {
+    try {
+      const stored = parseInt(localStorage.getItem('sl-selectedYear') ?? '', 10);
+      if (!isNaN(stored)) return stored;
+    } catch { /* ignore */ }
     const cur = new Date().getFullYear();
-    const years = [...new Set(loaded.map((m) => m.year))].sort();
+    const years = [...new Set(months.map((m) => m.year))].sort();
     return years.includes(cur) ? cur : (years[years.length - 1] ?? cur);
   });
+  const setSelectedYear = useCallback((year: number) => {
+    setSelectedYearRaw(year);
+    try { localStorage.setItem('sl-selectedYear', String(year)); } catch { /* ignore */ }
+  }, []);
 
   const yearMonths = useMemo(
     () => months.filter((m) => m.year === selectedYear).sort((a, b) => a.month - b.month),
@@ -513,7 +535,7 @@ function SlEntityView({ showToast, username, showPrevMonth, onTogglePrevMonth }:
           onYearChange={setSelectedYear}
         />
 
-        <SlMfsrTrend months={months} />
+        <SlMfsrTrend months={months} defaultYear={selectedYear} />
 
         <Box
           sx={{
@@ -567,6 +589,8 @@ function EntityView({ namespace, showToast, username, showPrevMonth, onTogglePre
     importMonths,
     displayData,
     computed,
+    singleMonthId,
+    setSingleMonthId,
   } = usePnlState(namespace, activePeriod, showPrevMonth);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -613,6 +637,9 @@ function EntityView({ namespace, showToast, username, showPrevMonth, onTogglePre
           onTogglePrevMonth={onTogglePrevMonth}
           prevMonthLabel={prevMonthLabel}
           username={username}
+          months={months}
+          singleMonthId={singleMonthId}
+          onSingleMonthChange={setSingleMonthId}
         />
 
         <KpiGrid data={combined} />

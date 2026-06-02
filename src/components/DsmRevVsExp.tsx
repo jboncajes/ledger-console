@@ -81,7 +81,10 @@ export function DsmRevVsExp({ data }: Props) {
   const { cardRef, copyBtnRef, hovered, setHovered, copied, handleCopy } = useCopyCard();
 
   const { prior, current, inputs } = data;
-  const maxScale = Math.max(prior.totalRev, current.totalRev, prior.totalExp, current.totalExp, 1);
+  const singleMonth = !inputs.priorLabel;
+  const maxScale = singleMonth
+    ? Math.max(current.totalRev, current.totalExp, 1)
+    : Math.max(prior.totalRev, current.totalRev, prior.totalExp, current.totalExp, 1);
   const netDelta = current.netSavings - prior.netSavings;
 
   return (
@@ -117,46 +120,56 @@ export function DsmRevVsExp({ data }: Props) {
             Revenue vs Expenses
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mt: 0.5 }}>
-            Green = revenue · Red = expenses · period comparison
+            Green = revenue · Red = expenses{!singleMonth ? ' · period comparison' : ''}
           </Typography>
         </Box>
-        <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} gap={0.3} sx={{ flexShrink: 0, pt: { sm: 0.5 } }}>
-          <Box sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.5,
-            px: 1.25, py: 0.4, borderRadius: '8px', fontSize: 13, fontWeight: 700,
-            fontFamily: '"JetBrains Mono", monospace',
-            background: netDelta >= 0 ? alpha(colors.accent2, 0.12) : alpha(colors.danger, 0.12),
-            color: netDelta >= 0 ? colors.accent2 : colors.danger,
-          }}>
-            {netDelta >= 0 ? '▲' : '▼'} {PESO}{fmtMillions(Math.abs(netDelta))}M
-          </Box>
-          <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>net savings change</Typography>
-        </Stack>
+        {!singleMonth && (
+          <Stack alignItems={{ xs: 'flex-start', sm: 'flex-end' }} gap={0.3} sx={{ flexShrink: 0, pt: { sm: 0.5 } }}>
+            <Box sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.5,
+              px: 1.25, py: 0.4, borderRadius: '8px', fontSize: 13, fontWeight: 700,
+              fontFamily: '"JetBrains Mono", monospace',
+              background: netDelta >= 0 ? alpha(colors.accent2, 0.12) : alpha(colors.danger, 0.12),
+              color: netDelta >= 0 ? colors.accent2 : colors.danger,
+            }}>
+              {netDelta >= 0 ? '▲' : '▼'} {PESO}{fmtMillions(Math.abs(netDelta))}M
+            </Box>
+            <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>net savings change</Typography>
+          </Stack>
+        )}
       </Stack>
 
       <Stack gap={3} sx={{ mt: 3 }}>
         <PeriodRow label={inputs.currentLabel} rev={current.totalRev} exp={current.totalExp} maxScale={maxScale} isCurrent />
-        <PeriodRow label={inputs.priorLabel}   rev={prior.totalRev}   exp={prior.totalExp}   maxScale={maxScale} isCurrent={false} />
+        {!singleMonth && (
+          <PeriodRow label={inputs.priorLabel} rev={prior.totalRev} exp={prior.totalExp} maxScale={maxScale} isCurrent={false} />
+        )}
       </Stack>
 
       <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${colors.border}` }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>Net Savings</Typography>
-          <Stack direction="row" gap={1.5} alignItems="center">
-            <Stack alignItems="flex-end">
-              <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>{inputs.priorLabel}</Typography>
-              <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim }}>
-                {PESO}{fmtMillions(prior.netSavings)}M
-              </Typography>
+          {singleMonth ? (
+            <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: current.netSavings >= 0 ? colors.accent2 : colors.danger }}>
+              {PESO}{fmtMillions(current.netSavings)}M
+            </Typography>
+          ) : (
+            <Stack direction="row" gap={1.5} alignItems="center">
+              <Stack alignItems="flex-end">
+                <Typography sx={{ fontSize: 10.5, color: colors.inkSoft }}>{inputs.priorLabel}</Typography>
+                <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', color: colors.inkDim }}>
+                  {PESO}{fmtMillions(prior.netSavings)}M
+                </Typography>
+              </Stack>
+              <Typography sx={{ fontSize: 14, color: colors.borderStrong, mt: 1.5 }}>→</Typography>
+              <Stack alignItems="flex-end">
+                <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: colors.ink }}>{inputs.currentLabel}</Typography>
+                <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: current.netSavings >= 0 ? colors.accent2 : colors.danger }}>
+                  {PESO}{fmtMillions(current.netSavings)}M
+                </Typography>
+              </Stack>
             </Stack>
-            <Typography sx={{ fontSize: 14, color: colors.borderStrong, mt: 1.5 }}>→</Typography>
-            <Stack alignItems="flex-end">
-              <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: colors.ink }}>{inputs.currentLabel}</Typography>
-              <Typography sx={{ fontSize: 13.5, fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: current.netSavings >= 0 ? colors.accent2 : colors.danger }}>
-                {PESO}{fmtMillions(current.netSavings)}M
-              </Typography>
-            </Stack>
-          </Stack>
+          )}
         </Stack>
       </Box>
     </Box>
